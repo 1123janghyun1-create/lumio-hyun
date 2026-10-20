@@ -168,7 +168,7 @@ export default function HomePage() {
               아직 등록된 프로젝트가 없습니다
             </h3>
             <p className="mt-1.5 max-w-sm text-xs text-muted leading-relaxed">
-              lumio의 첫 번째 사이드 프로젝트를 등록하고 피드백을 받아보세요.
+              zemit의 첫 번째 사이드 프로젝트를 등록하고 피드백을 받아보세요.
             </p>
             <Link
               href="/projects/new"

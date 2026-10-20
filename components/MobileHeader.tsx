@@ -25,7 +25,7 @@ export default function MobileHeader() {
           <HexagonLogo className="h-4 w-4 text-foreground" strokeWidth={2.2} />
         </span>
         <span className="text-[15px] font-bold tracking-tight text-foreground">
-          lumio
+          zemit
         </span>
       </Link>
 
@@ -41,7 +41,7 @@ export default function MobileHeader() {
 
         {/* Plus / New Project */}
         <Link
-          href="/projects/new"
+          href={mounted && user ? "/projects/new" : "/login?redirect=/projects/new"}
           aria-label="New Project"
           className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
         >

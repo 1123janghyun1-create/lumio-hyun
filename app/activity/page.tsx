@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Plus, Heart, MessageSquare, ThumbsUp, Layers, ExternalLink } from "lucide-react";
 import ProjectCard from "@/components/ProjectCard";
 import { Project, FeedbackItem, CommentItem } from "@/lib/types";
@@ -12,13 +13,29 @@ import { formatRelativeTime } from "@/lib/utils";
 type ActivityTab = "my_projects" | "liked" | "feedbacks" | "comments";
 
 export default function ActivityPage() {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<ActivityTab>("my_projects");
   const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login?redirect=/activity");
+    }
+  }, [loading, user, router]);
+
+  useEffect(() => {
     setProjects(getProjects());
   }, []);
+
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <p className="text-sm text-muted">로그인 확인 중...</p>
+      </div>
+    );
+  }
 
   const myProjects = projects.filter((p) => p.author.id === user?.id || p.author.name === user?.name);
   const likedProjects = projects.filter((p) => p.isLiked);

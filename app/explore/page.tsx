@@ -96,7 +96,7 @@ export default function ExplorePage() {
           탐색 (Explore)
         </h1>
         <p className="mt-1.5 text-sm text-muted">
-          Lumio에 올라온 다양한 사이드 프로젝트를 검색하고 필터링해보세요.
+          Zemit에 올라온 다양한 사이드 프로젝트를 검색하고 필터링해보세요.
         </p>
       </div>
 

@@ -38,7 +38,7 @@ export default function Navbar() {
             <HexagonLogo className="h-4.5 w-4.5 text-foreground group-hover:text-primary transition-colors" strokeWidth={2.2} />
           </span>
           <span className="text-[17px] font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
-            lumio
+            zemit
           </span>
         </Link>
 
@@ -186,7 +186,7 @@ export default function Navbar() {
 
           {/* New Project Button */}
           <Link
-            href="/projects/new"
+            href={user ? "/projects/new" : "/login?redirect=/projects/new"}
             className="flex items-center gap-1.5 rounded-[12px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors duration-200 hover:bg-primary-hover"
           >
             <Plus className="h-4 w-4" />

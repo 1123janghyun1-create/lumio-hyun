@@ -23,7 +23,7 @@ export async function GET() {
               name: p.name || existing.name || "Maker",
               handle: p.handle || existing.handle || "maker",
               avatar: p.avatar_url || existing.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`,
-              bio: p.bio || existing.bio || "lumio 메이커",
+              bio: p.bio || existing.bio || "zemit 메이커",
               role: p.role || existing.role || "Maker",
               isStartingMember: p.is_starting_member ?? existing.isStartingMember ?? true,
               followersCount: existing.followersCount ?? 0,

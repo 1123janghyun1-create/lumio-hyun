@@ -109,7 +109,13 @@ const STEP_LABELS = [
 
 export default function NewProjectWizard() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login?redirect=/projects/new");
+    }
+  }, [loading, user, router]);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -250,17 +256,11 @@ export default function NewProjectWizard() {
 
   // Final Publish Handler
   const handlePublish = async () => {
+    if (!user) {
+      router.push("/login?redirect=/projects/new");
+      return;
+    }
     setIsSubmitting(true);
-
-    const defaultAuthor = user || {
-      id: "anon-maker",
-      name: "Anonymous Maker",
-      handle: "maker",
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-      bio: "Lumio 메이커",
-      role: "Solo Builder",
-      isStartingMember: true,
-    };
 
     // Map stage to legacy ProjectStatus
     let legacyStatus: ProjectStatus = "Public";
@@ -278,13 +278,13 @@ export default function NewProjectWizard() {
       coverImage: draft.coverImage || "",
       coverGradient: draft.coverGradient,
       screenshots: draft.screenshots,
-      websiteUrl: draft.website.trim() || "https://lumio.app",
+      websiteUrl: draft.website.trim() || "https://zemit.app",
       demoUrl: draft.demo.trim() || undefined,
       githubUrl: draft.github.trim() || undefined,
       teamChat: draft.teamChatUrl.trim()
         ? { platform: draft.teamChatPlatform, url: draft.teamChatUrl.trim() }
         : undefined,
-      author: defaultAuthor,
+      author: user,
       tags: draft.tags.length > 0 ? draft.tags : ["SideProject"],
       lookingFor: draft.lookingFor,
       lookingForTeam: draft.lookingFor.some((h) =>
@@ -299,6 +299,15 @@ export default function NewProjectWizard() {
     setIsSubmitting(false);
     setCreatedProjectId(newProject.id);
   };
+
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <p className="text-sm text-muted">로그인 확인 중...</p>
+      </div>
+    );
+  }
 
   // Post-publish Success Screen (identical to cozit.app)
   if (createdProjectId) {
@@ -418,7 +427,7 @@ export default function NewProjectWizard() {
                 maxLength={40}
                 value={draft.name}
                 onChange={(e) => updateDraft({ name: e.target.value })}
-                placeholder="예: Lumio, Cozit, PageRivet"
+                placeholder="예: Zemit, Cozit, PageRivet"
                 className="w-full rounded-[var(--radius-control)] border border-border bg-surface px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
             </div>

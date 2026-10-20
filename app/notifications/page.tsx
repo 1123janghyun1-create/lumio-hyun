@@ -2,17 +2,36 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bell, Heart, MessageSquare, ThumbsUp, CheckCheck } from "lucide-react";
 import { NotificationItem } from "@/lib/types";
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/lib/storage";
 import { formatRelativeTime } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 export default function NotificationsPage() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login?redirect=/notifications");
+    }
+  }, [loading, user, router]);
 
   useEffect(() => {
     setNotifications(getNotifications());
   }, []);
+
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <p className="text-sm text-muted">로그인 확인 중...</p>
+      </div>
+    );
+  }
 
   const handleMarkAllRead = () => {
     markAllNotificationsAsRead();

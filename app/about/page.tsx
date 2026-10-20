@@ -23,12 +23,12 @@ export default function AboutPage() {
 
   const faqs = [
     {
-      q: "lumio는 무료로 이용할 수 있나요?",
-      a: "네, lumio는 모든 메이커와 사용자가 100% 무료로 이용할 수 있는 열린 플랫폼입니다. 프로젝트 등록, 피드백 수집, 팀원 모집, 인사이트 분석까지 어떤 제한 없이 자유롭게 활용하실 수 있습니다.",
+      q: "zemit은 무료로 이용할 수 있나요?",
+      a: "네, zemit은 모든 메이커와 사용자가 100% 무료로 이용할 수 있는 열린 플랫폼입니다. 프로젝트 등록, 피드백 수집, 팀원 모집, 인사이트 분석까지 어떤 제한 없이 자유롭게 활용하실 수 있습니다.",
     },
     {
       q: "아직 완성되지 않은 아이디어나 MVP도 등록할 수 있나요?",
-      a: "물론입니다! lumio는 완성된 프로덕트뿐만 아니라 아이디어 구상 단계, 프로토타입, 초기 베타 테스트 단계의 프로젝트를 가장 환영합니다. 초기부터 실제 사용자의 피드백을 받으며 함께 키워나가는 것이 lumio의 핵심 가치입니다.",
+      a: "물론입니다! zemit은 완성된 프로덕트뿐만 아니라 아이디어 구상 단계, 프로토타입, 초기 베타 테스트 단계의 프로젝트를 가장 환영합니다. 초기부터 실제 사용자의 피드백을 받으며 함께 키워나가는 것이 zemit의 핵심 가치입니다.",
     },
     {
       q: "트렌딩 랭킹 알고리즘은 어떻게 작동하나요?",
@@ -36,7 +36,7 @@ export default function AboutPage() {
     },
     {
       q: "홍보용 추적 링크(/go/프로젝트ID)는 무엇인가요?",
-      a: "내 프로젝트 상세 페이지의 '공유' 버튼이나 외부(트위터, 디스코드, 링크드인 등)에 lumio/go/프로젝트ID 링크를 공유하면, 외부에서 내 실제 서비스로 넘어가는 아웃바운드 클릭수와 유입 경로를 프로젝트 인사이트 탭에서 실시간으로 확인할 수 있습니다.",
+      a: "내 프로젝트 상세 페이지의 '공유' 버튼이나 외부(트위터, 디스코드, 링크드인 등)에 zemit/go/프로젝트ID 링크를 공유하면, 외부에서 내 실제 서비스로 넘어가는 아웃바운드 클릭수와 유입 경로를 프로젝트 인사이트 탭에서 실시간으로 확인할 수 있습니다.",
     },
   ];
 
@@ -85,14 +85,14 @@ export default function AboutPage() {
                 <span
                   className="whitespace-nowrap bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 bg-clip-text text-transparent font-black"
                 >
-                  lumio
+                  zemit
                 </span>
                 ,<br />
                 Build it, show it, grow it together
               </h1>
 
               <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted sm:text-lg lg:mx-0">
-                아이디어에서 첫 런칭까지, lumio에서 첫 사용자를 만나보세요. 프로젝트 등록, 유저 피드백 추적, 팀원 및 테스터 매칭, 실시간 트렌딩 노출과 유입 경로 인사이트까지 — 사이드 프로젝트 성장에 필요한 모든 것을 한곳에서 제공합니다.
+                아이디어에서 첫 런칭까지, zemit에서 첫 사용자를 만나보세요. 프로젝트 등록, 유저 피드백 추적, 팀원 및 테스터 매칭, 실시간 트렌딩 노출과 유입 경로 인사이트까지 — 사이드 프로젝트 성장에 필요한 모든 것을 한곳에서 제공합니다.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5 lg:justify-start">
@@ -108,35 +108,6 @@ export default function AboutPage() {
                 >
                   프로젝트 둘러보기
                 </Link>
-              </div>
-
-              {/* Makers Avatar Proof */}
-              <div className="mt-8 flex items-center justify-center gap-3 lg:justify-start">
-                <div className="flex -space-x-2" aria-hidden="true">
-                  <img
-                    src="https://avatars.githubusercontent.com/u/122044645?v=4"
-                    alt=""
-                    className="h-8 w-8 rounded-full border-2 border-surface object-cover shadow-sm"
-                  />
-                  <img
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
-                    alt=""
-                    className="h-8 w-8 rounded-full border-2 border-surface object-cover shadow-sm"
-                  />
-                  <img
-                    src="https://lh3.googleusercontent.com/a/ACg8ocJvHmdyrBeJAc5g7SXsxNW4NBz1lQGM-puH0MflOX1fYC3_Bw=s96-c"
-                    alt=""
-                    className="h-8 w-8 rounded-full border-2 border-surface object-cover shadow-sm"
-                  />
-                  <img
-                    src="https://images.cozit.app/avatars/25350913-7e9f-4295-8c79-1bcafd84fd6e.png"
-                    alt=""
-                    className="h-8 w-8 rounded-full border-2 border-surface object-cover shadow-sm"
-                  />
-                </div>
-                <p className="max-w-xs text-left text-xs text-muted">
-                  수많은 메이커들이 매일 사이드 프로젝트를 공유하고 함께 성장하고 있습니다.
-                </p>
               </div>
             </div>
 
@@ -163,7 +134,7 @@ export default function AboutPage() {
                       <span className="h-2 w-2 rounded-full bg-warning/60" />
                       <span className="h-2 w-2 rounded-full bg-success/60" />
                       <div className="mx-auto flex h-4.5 w-48 items-center justify-center rounded-md bg-surface px-2 text-[9px] text-muted font-mono">
-                        lumio.app
+                        zemit.app
                       </div>
                     </div>
 
@@ -176,7 +147,7 @@ export default function AboutPage() {
                               <span className="flex h-5 w-5 items-center justify-center rounded-md border border-border bg-surface">
                                 <HexagonLogo className="h-3 w-3 text-primary" strokeWidth={2.5} />
                               </span>
-                              <span className="text-xs font-bold text-foreground">lumio</span>
+                              <span className="text-xs font-bold text-foreground">zemit</span>
                             </div>
                             <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[9px] font-semibold text-primary">
                               Featured Today
@@ -369,14 +340,14 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Why Lumio Section */}
+      {/* Why Zemit Section */}
       <section className="mx-auto max-w-5xl px-6 pt-24">
         <div className="text-center">
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">
-            WHY LUMIO
+            WHY ZEMIT
           </p>
           <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            lumio가 다른 플랫폼과 다른 점
+            zemit이 다른 플랫폼과 다른 점
           </h2>
         </div>
 
@@ -496,7 +467,7 @@ export default function AboutPage() {
             WHO IT'S FOR
           </p>
           <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            lumio는 누구를 위한 공간인가요?
+            zemit은 누구를 위한 공간인가요?
           </h2>
         </div>
 
@@ -547,7 +518,7 @@ export default function AboutPage() {
             HOW IT WORKS
           </p>
           <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            lumio를 시작하는 간단한 5단계
+            zemit을 시작하는 간단한 5단계
           </h2>
         </div>
 

@@ -144,6 +144,12 @@ export default function ProjectDetailClient({
   }
 
   const handleLike = () => {
+    if (!user) {
+      if (confirm("좋아요를 누르려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
+        router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      }
+      return;
+    }
     const result = toggleProjectLike(project.id);
     setProject((prev) => (prev ? { ...prev, likesCount: result.likesCount, isLiked: result.isLiked } : null));
   };
@@ -155,6 +161,12 @@ export default function ProjectDetailClient({
   };
 
   const handleToggleFollow = () => {
+    if (!user) {
+      if (confirm("메이커를 팔로우하려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
+        router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      }
+      return;
+    }
     if (!project?.author?.id) return;
     const res = toggleFollowBuilder(project.author.id);
     setIsFollowingMaker(res.isFollowing);
@@ -198,13 +210,19 @@ export default function ProjectDetailClient({
 
   const handleSubmitFeedback = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      if (confirm("피드백을 작성하려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
+        router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      }
+      return;
+    }
     if (!feedbackTitle.trim() || !feedbackDesc.trim()) return;
 
     const created = addFeedback({
       projectId: project.id,
-      userId: user?.id || "guest",
-      userName: user?.name || "익명 메이커",
-      userAvatar: user?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      userId: user.id,
+      userName: user.name,
+      userAvatar: user.avatar,
       type: feedbackType,
       title: feedbackTitle,
       description: feedbackDesc,
@@ -218,6 +236,12 @@ export default function ProjectDetailClient({
   };
 
   const handleUpvoteFeedback = (feedbackId: string) => {
+    if (!user) {
+      if (confirm("피드백을 추천하려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
+        router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      }
+      return;
+    }
     const res = toggleFeedbackUpvote(feedbackId);
     setFeedbacks((prev) =>
       prev.map((f) => (f.id === feedbackId ? { ...f, upvotes: res.upvotes, isUpvoted: res.isUpvoted } : f))
@@ -226,13 +250,19 @@ export default function ProjectDetailClient({
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      if (confirm("댓글을 남기려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
+        router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      }
+      return;
+    }
     if (!newComment.trim()) return;
 
     const created = addComment({
       projectId: project.id,
-      userId: user?.id || "guest",
-      userName: user?.name || "익명 메이커",
-      userAvatar: user?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      userId: user.id,
+      userName: user.name,
+      userAvatar: user.avatar,
       content: newComment,
     });
 
@@ -242,6 +272,7 @@ export default function ProjectDetailClient({
 
   const handleSubmitUpdate = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user || !isOwner) return;
     if (!updateTitle.trim() || !updateContent.trim()) return;
 
     const created = addTimelineUpdate({
@@ -418,7 +449,7 @@ export default function ProjectDetailClient({
             <div className="ml-auto hidden md:flex items-center gap-2 text-xs text-muted-foreground bg-surface-muted px-3 py-1.5 rounded-control">
               <span>추적 링크:</span>
               <code className="text-primary font-mono text-[11px]">
-                lumio/go/{project.id}
+                zemit/go/{project.id}
               </code>
             </div>
           </div>
@@ -517,7 +548,15 @@ export default function ProjectDetailClient({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowFeedbackModal(true)}
+                  onClick={() => {
+                    if (!user) {
+                      if (confirm("피드백을 작성하려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
+                        router.push(`/login?redirect=${encodeURIComponent(`/projects/${project.id}`)}`);
+                      }
+                      return;
+                    }
+                    setShowFeedbackModal(true);
+                  }}
                   className="flex items-center gap-1.5 rounded-control bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover shadow-sm cursor-pointer"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -620,33 +659,45 @@ export default function ProjectDetailClient({
           {activeTab === "comments" && (
             <div className="space-y-6 animate-fade-in">
               {/* Add Comment Input */}
-              <form onSubmit={handleAddComment} className="rounded-card border border-border bg-surface p-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <img
-                    src={user?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"}
-                    alt=""
-                    className="h-8 w-8 rounded-full border border-border object-cover"
-                  />
-                  <div className="flex-1">
-                    <textarea
-                      rows={3}
-                      placeholder="메이커에게 응원이나 질문을 남겨보세요..."
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      className="w-full rounded-control border border-border bg-surface-muted/50 p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              {user ? (
+                <form onSubmit={handleAddComment} className="rounded-card border border-border bg-surface p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="h-8 w-8 rounded-full border border-border object-cover"
                     />
-                    <div className="mt-2 flex justify-end">
-                      <button
-                        type="submit"
-                        className="flex items-center gap-1.5 rounded-control bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover shadow-sm cursor-pointer"
-                      >
-                        <Send className="h-3 w-3" />
-                        댓글 등록
-                      </button>
+                    <div className="flex-1">
+                      <textarea
+                        rows={3}
+                        placeholder="메이커에게 응원이나 질문을 남겨보세요..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        className="w-full rounded-control border border-border bg-surface-muted/50 p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          type="submit"
+                          className="flex items-center gap-1.5 rounded-control bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover shadow-sm cursor-pointer"
+                        >
+                          <Send className="h-3 w-3" />
+                          댓글 등록
+                        </button>
+                      </div>
                     </div>
                   </div>
+                </form>
+              ) : (
+                <div className="rounded-card border border-dashed border-border p-6 text-center bg-surface-muted/30">
+                  <p className="text-sm text-muted">댓글을 남기려면 먼저 로그인해주세요.</p>
+                  <Link
+                    href={`/login?redirect=${encodeURIComponent(`/projects/${project.id}`)}`}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-control bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover shadow-sm"
+                  >
+                    로그인하고 댓글 남기기
+                  </Link>
                 </div>
-              </form>
+              )}
 
               {/* Comments List */}
               <div className="space-y-3">
@@ -850,7 +901,7 @@ export default function ProjectDetailClient({
                 </h4>
                 <div className="space-y-3">
                   {(project.insights?.referrers || [
-                    { source: "Lumio 메인 트렌딩", count: 280, percentage: 54 },
+                    { source: "Zemit 메인 트렌딩", count: 280, percentage: 54 },
                     { source: "외부 추적 링크 (/go)", count: 120, percentage: 23 },
                     { source: "소셜 미디어 / 디스코드", count: 75, percentage: 14 },
                     { source: "기타 / 검색", count: 45, percentage: 9 },

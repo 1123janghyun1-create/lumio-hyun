@@ -2,21 +2,31 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Heart, Users, ArrowUpRight } from "lucide-react";
 import { Project } from "@/lib/types";
 import { toggleProjectLike } from "@/lib/storage";
+import { useAuth } from "@/context/AuthContext";
 
 interface FeaturedProjectProps {
   project: Project;
 }
 
 export default function FeaturedProject({ project }: FeaturedProjectProps) {
+  const router = useRouter();
+  const { user } = useAuth();
   const [likesCount, setLikesCount] = useState(project.likesCount);
   const [isLiked, setIsLiked] = useState(project.isLiked || false);
 
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!user) {
+      if (confirm("좋아요를 누르려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
+        router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      }
+      return;
+    }
     const result = toggleProjectLike(project.id);
     setLikesCount(result.likesCount);
     setIsLiked(result.isLiked);

@@ -26,18 +26,20 @@ function LoginForm() {
     }
   }, [searchParams]);
 
-  // If already logged in, redirect to home
+  // If already logged in, redirect to target or home
   useEffect(() => {
     if (!authLoading && user) {
-      router.push("/");
+      const redirect = searchParams.get("redirect") || "/";
+      router.push(redirect);
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, searchParams]);
 
   const handleGoogleLogin = async () => {
     try {
       setIsSubmitting(true);
       setErrorMessage(null);
-      const { error } = await signInWithGoogle();
+      const redirectTarget = searchParams.get("redirect") || "/";
+      const { error } = await signInWithGoogle(redirectTarget);
       if (error) {
         console.error("Google sign-in error:", error);
         setErrorMessage(
@@ -61,11 +63,11 @@ function LoginForm() {
             <HexagonLogo className="h-5 w-5 text-foreground group-hover:text-primary transition-colors" strokeWidth={2.2} />
           </span>
           <span className="text-xl font-bold tracking-tight text-foreground">
-            lumio
+            zemit
           </span>
         </Link>
         <h2 className="text-2xl font-bold tracking-tight text-foreground">
-          lumio 시작하기
+          zemit 시작하기
         </h2>
         <p className="text-xs text-muted leading-relaxed">
           구글 계정으로 간편하게 로그인하고 사이드 프로젝트를 공유해보세요.
@@ -131,7 +133,7 @@ function LoginForm() {
       {/* Footer Info */}
       <div className="pt-4 border-t border-border space-y-4 text-center">
         <p className="text-[11px] text-muted leading-relaxed">
-          로그인 시 lumio의{" "}
+          로그인 시 zemit의{" "}
           <Link href="/terms" className="underline hover:text-foreground">
             서비스 이용약관
           </Link>{" "}

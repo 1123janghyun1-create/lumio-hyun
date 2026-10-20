@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, MessageSquare, Heart, Sparkles, Filter, Send, Upload, X, Image as ImageIcon, Trash2 } from "lucide-react";
 import { CommunityPost } from "@/lib/types";
 import { getCommunityPosts, addCommunityPost, deleteCommunityPost, fetchSharedCommunityPosts } from "@/lib/storage";
@@ -19,6 +20,7 @@ const CATEGORIES = [
 ];
 
 export default function CommunityPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -59,24 +61,20 @@ export default function CommunityPage() {
 
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      if (confirm("글을 작성하려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
+        router.push("/login?redirect=/community");
+      }
+      return;
+    }
     if (!newTitle.trim() || !newContent.trim()) return;
-
-    const defaultAuthor = user || {
-      id: "anon-builder",
-      name: "Anonymous Maker",
-      handle: "maker",
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-      bio: "Lumio 메이커",
-      role: "Maker",
-      isStartingMember: true,
-    };
 
     const created = addCommunityPost({
       category: newCategory,
       title: newTitle,
       content: newContent,
       imageUrl: newImageUrl || undefined,
-      author: defaultAuthor,
+      author: user,
     });
 
     setPosts([created, ...posts]);
@@ -87,6 +85,12 @@ export default function CommunityPage() {
   };
 
   const handleLikePost = (postId: string) => {
+    if (!user) {
+      if (confirm("좋아요를 누르려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
+        router.push("/login?redirect=/community");
+      }
+      return;
+    }
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id === postId) {
@@ -127,7 +131,15 @@ export default function CommunityPage() {
 
         <button
           type="button"
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            if (!user) {
+              if (confirm("글을 작성하려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
+                router.push("/login?redirect=/community");
+              }
+              return;
+            }
+            setShowModal(true);
+          }}
           className="flex items-center gap-1.5 rounded-control bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover shadow-sm cursor-pointer self-start sm:self-auto"
         >
           <Plus className="h-4 w-4" />

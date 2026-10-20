@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 interface AuthContextType {
   user: Builder | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<{ error: any }>;
+  signInWithGoogle: (redirectPath?: string) => Promise<{ error: any }>;
   logout: () => Promise<void>;
   updateUser: (updated: Builder) => void;
   isSupabaseConnected: boolean;
@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name: fullName,
       handle: handle,
       avatar: avatar,
-      bio: meta.bio || "lumio 메이커",
+      bio: meta.bio || "zemit 메이커",
       role: meta.role || "Maker",
       isStartingMember: true,
       socials: {
@@ -163,13 +163,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (redirectPath?: string) => {
     const supabase = createClient();
     if (!supabase) {
       return { error: new Error("Supabase 클라이언트를 초기화할 수 없습니다.") };
     }
 
-    const redirectTo = `${window.location.origin}/auth/callback`;
+    const searchParams = new URLSearchParams();
+    if (redirectPath && redirectPath.startsWith("/")) {
+      searchParams.set("next", redirectPath);
+    }
+    const query = searchParams.toString();
+    const redirectTo = `${window.location.origin}/auth/callback${query ? `?${query}` : ""}`;
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",

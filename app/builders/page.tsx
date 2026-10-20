@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Globe, Users, Heart, Layers } from "lucide-react";
 import { GithubIcon, TwitterIcon } from "@/components/Icons";
 import { Builder } from "@/lib/types";
@@ -10,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 
 export default function BuildersPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [builders, setBuilders] = useState<Builder[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,7 +47,7 @@ export default function BuildersPage() {
             name: p.name || "Maker",
             handle: p.handle || "maker",
             avatar: p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`,
-            bio: p.bio || "lumio 메이커",
+            bio: p.bio || "zemit 메이커",
             role: p.role || "Maker",
             isStartingMember: p.is_starting_member ?? true,
             socials: {
@@ -94,6 +96,12 @@ export default function BuildersPage() {
   }, [user]);
 
   const handleFollow = (builderId: string) => {
+    if (!user) {
+      if (confirm("빌더를 팔로우하려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
+        router.push("/login?redirect=/builders");
+      }
+      return;
+    }
     const result = toggleFollowBuilder(builderId);
     setBuilders((prev) =>
       prev.map((b) =>
@@ -136,7 +144,7 @@ export default function BuildersPage() {
           빌더들 (Builders)
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Lumio에서 사이드 프로젝트를 만들고 키워나가는 메이커들을 만나보세요.
+          Zemit에서 사이드 프로젝트를 만들고 키워나가는 메이커들을 만나보세요.
         </p>
       </div>
 

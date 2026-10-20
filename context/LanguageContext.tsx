@@ -21,7 +21,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.login": "로그인",
     "nav.newProject": "New Project",
     "hero.tagline": "아이디어에서 출시까지. 피드백을 받고 팀원을 찾아 함께 성장하세요.",
-    "hero.banner": "Lumio가 처음이신가요? 둘러보기 →",
+    "hero.banner": "Zemit이 처음이신가요? 둘러보기 →",
     "search.placeholder": "프로젝트, 태그, 빌더 검색",
     "filter.popular": "Popular",
     "filter.newest": "Newest",
@@ -35,7 +35,7 @@ const translations: Record<Language, Record<string, string>> = {
     "project.public": "Public",
     "project.beta": "Beta",
     "project.mvp": "MVP",
-    "footer.rights": "© Lumio. All rights reserved.",
+    "footer.rights": "© Zemit. All rights reserved.",
   },
   en: {
     "nav.explore": "Explore",
@@ -46,7 +46,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.login": "Log in",
     "nav.newProject": "New Project",
     "hero.tagline": "From ideas to launched projects. Get feedback, find teammates, and grow together.",
-    "hero.banner": "New to Lumio? See what it's all about →",
+    "hero.banner": "New to Zemit? See what it's all about →",
     "search.placeholder": "Search projects, tags, builders",
     "filter.popular": "Popular",
     "filter.newest": "Newest",
@@ -60,7 +60,7 @@ const translations: Record<Language, Record<string, string>> = {
     "project.public": "Public",
     "project.beta": "Beta",
     "project.mvp": "MVP",
-    "footer.rights": "© Lumio. All rights reserved.",
+    "footer.rights": "© Zemit. All rights reserved.",
   },
 };
 

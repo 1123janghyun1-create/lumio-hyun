@@ -159,6 +159,23 @@ export default function EditProjectClient({ projectId }: { projectId: string }) 
     );
   }
 
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-lg px-6 py-20 text-center">
+        <h2 className="text-lg font-bold text-foreground">로그인이 필요합니다</h2>
+        <p className="mt-2 text-xs text-muted">
+          프로젝트를 수정하려면 먼저 로그인해 주세요.
+        </p>
+        <Link
+          href={`/login?redirect=${encodeURIComponent(`/projects/${projectId}/edit`)}`}
+          className="mt-4 inline-block rounded-control bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+        >
+          로그인하러 가기
+        </Link>
+      </div>
+    );
+  }
+
   const isOwner = Boolean(
     user && (user.id === project.author.id || user.handle === project.author.handle)
   );

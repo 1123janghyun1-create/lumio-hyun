@@ -12,7 +12,7 @@ export default function Footer() {
               <HexagonLogo className="h-4 w-4 text-foreground" strokeWidth={2.2} />
             </span>
             <span className="text-sm font-bold tracking-tight text-foreground">
-              lumio
+              zemit
             </span>
             <span className="text-xs text-muted ml-2">
               — Meet users. Build together.
@@ -43,7 +43,7 @@ export default function Footer() {
           </div>
 
           <div className="text-xs text-muted-foreground text-center md:text-right">
-            © 2026 Lumio. All rights reserved.
+            © 2026 Zemit. All rights reserved.
           </div>
         </div>
       </div>

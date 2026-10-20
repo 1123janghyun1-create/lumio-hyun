@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Upload, Save, Check, Globe } from "lucide-react";
 import { GithubIcon } from "@/components/Icons";
 import { useAuth } from "@/context/AuthContext";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 
 export default function ProfilePage() {
-  const { user, updateUser } = useAuth();
+  const router = useRouter();
+  const { user, updateUser, loading } = useAuth();
 
   const [name, setName] = useState(user?.name || "");
   const [handle, setHandle] = useState(user?.handle || "");
@@ -18,6 +20,12 @@ export default function ProfilePage() {
   const [website, setWebsite] = useState(user?.socials?.website || "");
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  React.useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login?redirect=/profile");
+    }
+  }, [loading, user, router]);
 
   React.useEffect(() => {
     if (user) {
@@ -69,6 +77,15 @@ export default function ProfilePage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <p className="text-sm text-muted">로그인 확인 중...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-10 animate-fade-in">
       <div className="mb-8">
@@ -76,7 +93,7 @@ export default function ProfilePage() {
           프로필 설정 (Profile)
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Lumio 커뮤니티와 프로젝트에 노출되는 빌더 정보를 수정합니다.
+          Zemit 커뮤니티와 프로젝트에 노출되는 빌더 정보를 수정합니다.
         </p>
       </div>
 
