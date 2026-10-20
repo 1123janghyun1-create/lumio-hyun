@@ -18,7 +18,6 @@ import {
 import { HexagonLogo } from "@/components/Icons";
 
 export default function AboutPage() {
-  const [activeScreen, setActiveScreen] = useState<"home" | "builders" | "timeline">("home");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const faqs = [
@@ -69,220 +68,42 @@ export default function AboutPage() {
           />
         </div>
 
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[5fr_7fr] lg:gap-16">
-            {/* Left Column: Headlines & CTA */}
-            <div className="text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-3.5 py-1 text-xs font-semibold text-foreground backdrop-blur-md shadow-sm mb-6">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-primary">
-                  <HexagonLogo className="h-2.5 w-2.5" strokeWidth={2.5} />
-                </span>
-                <span>Meet users. Build together.</span>
-              </div>
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-3.5 py-1 text-xs font-semibold text-foreground backdrop-blur-md shadow-sm mb-6">
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-primary">
+              <HexagonLogo className="h-2.5 w-2.5" strokeWidth={2.5} />
+            </span>
+            <span>Meet users. Build together.</span>
+          </div>
 
-              <h1 className="text-4xl font-extrabold leading-[1.18] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-                On{" "}
-                <span
-                  className="whitespace-nowrap bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 bg-clip-text text-transparent font-black"
-                >
-                  zemix
-                </span>
-                ,<br />
-                Build it, show it, grow it together
-              </h1>
+          <h1 className="text-4xl font-extrabold leading-[1.18] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            On{" "}
+            <span
+              className="whitespace-nowrap bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 bg-clip-text text-transparent font-black"
+            >
+              zemix
+            </span>
+            ,<br />
+            Build it, show it, grow it together
+          </h1>
 
-              <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted sm:text-lg lg:mx-0">
-                아이디어에서 첫 런칭까지, zemix에서 첫 사용자를 만나보세요. 프로젝트 등록, 유저 피드백 추적, 팀원 및 테스터 매칭, 실시간 트렌딩 노출과 유입 경로 인사이트까지 — 사이드 프로젝트 성장에 필요한 모든 것을 한곳에서 제공합니다.
-              </p>
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
+            아이디어에서 첫 런칭까지, zemix에서 첫 사용자를 만나보세요. 프로젝트 등록, 유저 피드백 추적, 팀원 및 테스터 매칭, 실시간 트렌딩 노출과 유입 경로 인사이트까지 — 사이드 프로젝트 성장에 필요한 모든 것을 한곳에서 제공합니다.
+          </p>
 
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5 lg:justify-start">
-                <Link
-                  href="/projects/new"
-                  className="rounded-[12px] bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary-hover hover:shadow-md cursor-pointer"
-                >
-                  프로젝트 등록하기
-                </Link>
-                <Link
-                  href="/explore"
-                  className="rounded-[12px] border border-border bg-surface px-7 py-3.5 text-sm font-semibold text-foreground shadow-sm transition-all duration-200 hover:bg-surface-muted cursor-pointer"
-                >
-                  프로젝트 둘러보기
-                </Link>
-              </div>
-            </div>
-
-            {/* Right Column: Interactive Product Showcase */}
-            <div className="flex justify-center lg:justify-end">
-              <div className="w-full max-w-xl">
-                {/* Device Bezel */}
-                <div
-                  className="rounded-2xl p-3 sm:p-4 border border-white/10"
-                  style={{
-                    background: "linear-gradient(180deg, #2b2b30 0%, #17171a 100%)",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), 0 24px 48px -16px rgba(0,0,0,0.4)",
-                  }}
-                >
-                  <div className="mb-2 flex justify-center sm:mb-3">
-                    <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
-                  </div>
-
-                  {/* Device Screen Content */}
-                  <div className="relative aspect-[16/10] w-full overflow-hidden rounded-lg bg-surface border border-border shadow-inner">
-                    {/* Simulated Top Browser Bar */}
-                    <div className="flex items-center gap-1.5 border-b border-border bg-surface-muted px-3 py-2">
-                      <span className="h-2 w-2 rounded-full bg-danger/60" />
-                      <span className="h-2 w-2 rounded-full bg-warning/60" />
-                      <span className="h-2 w-2 rounded-full bg-success/60" />
-                      <div className="mx-auto flex h-4.5 w-48 items-center justify-center rounded-md bg-surface px-2 text-[9px] text-muted font-mono">
-                        zemix.app
-                      </div>
-                    </div>
-
-                    {/* Inside preview */}
-                    <div className="p-3 overflow-hidden h-[calc(100%-30px)] flex flex-col justify-between">
-                      {activeScreen === "home" && (
-                        <div className="space-y-2 animate-fade-in">
-                          <div className="flex items-center justify-between border-b border-border/50 pb-2">
-                            <div className="flex items-center gap-1.5">
-                              <span className="flex h-5 w-5 items-center justify-center rounded-md border border-border bg-surface">
-                                <HexagonLogo className="h-3 w-3 text-primary" strokeWidth={2.5} />
-                              </span>
-                              <span className="text-xs font-bold text-foreground">zemix</span>
-                            </div>
-                            <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[9px] font-semibold text-primary">
-                              Featured Today
-                            </span>
-                          </div>
-
-                          {/* Mini Card */}
-                          <div className="rounded-lg border border-border bg-surface-muted/60 p-2.5 flex items-center gap-3">
-                            <div className="h-10 w-10 shrink-0 rounded-md bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">
-                              P
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-semibold text-xs text-foreground truncate">PPT SUMMARY AI</span>
-                                <span className="rounded-full bg-warning-soft px-1.5 py-0.2 text-[8px] font-medium text-warning">Beta</span>
-                              </div>
-                              <p className="text-[10px] text-muted truncate mt-0.5">
-                                기울어진 PPT 사진 1초 만에 평면 보정 & 보고서 생성
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 pt-1">
-                            <div className="rounded-md border border-border bg-surface p-2">
-                              <p className="text-[10px] font-semibold text-foreground truncate">와글와글 세포전</p>
-                              <p className="text-[8px] text-muted truncate">군집 PvP 서바이벌</p>
-                            </div>
-                            <div className="rounded-md border border-border bg-surface p-2">
-                              <p className="text-[10px] font-semibold text-foreground truncate">PageRivet</p>
-                              <p className="text-[8px] text-muted truncate">AI 웹 에디터</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {activeScreen === "builders" && (
-                        <div className="space-y-2 animate-fade-in">
-                          <p className="text-[11px] font-bold text-foreground">Active Builders</p>
-                          <div className="space-y-1.5">
-                            {[
-                              { name: "Dev An", role: "Game Dev", tag: "Starting Member" },
-                              { name: "Raneree", role: "AI Dev", tag: "Starting Member" },
-                              { name: "thewon-io", role: "AI Engineer", tag: "Founding Member" },
-                            ].map((b, i) => (
-                              <div key={i} className="flex items-center justify-between rounded-md border border-border bg-surface-muted/50 p-1.5">
-                                <div className="flex items-center gap-2">
-                                  <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
-                                    {b.name[0]}
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] font-semibold text-foreground leading-none">{b.name}</p>
-                                    <p className="text-[8px] text-muted">{b.role}</p>
-                                  </div>
-                                </div>
-                                <span className="rounded-full bg-surface px-1.5 py-0.5 text-[8px] text-muted border border-border">
-                                  {b.tag}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {activeScreen === "timeline" && (
-                        <div className="space-y-2 animate-fade-in">
-                          <p className="text-[11px] font-bold text-foreground">Live Milestone Updates</p>
-                          <div className="space-y-2 border-l-2 border-primary/40 pl-2.5 ml-1">
-                            <div className="relative">
-                              <span className="absolute -left-[15px] top-1 h-2 w-2 rounded-full bg-primary" />
-                              <p className="text-[10px] font-semibold text-foreground">v1.2.0 팀전 하이브 부수기 릴리즈</p>
-                              <p className="text-[8px] text-muted">서버 틱레이트 60fps 최적화 및 신규 핑 시스템 추가</p>
-                            </div>
-                            <div className="relative">
-                              <span className="absolute -left-[15px] top-1 h-2 w-2 rounded-full bg-muted-foreground" />
-                              <p className="text-[10px] font-semibold text-foreground">v1.1.0 글로벌 리더보드 오픈</p>
-                              <p className="text-[8px] text-muted">첫 공식 오픈 베타 런칭 완료</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Device Stand */}
-                <div
-                  className="relative mx-auto h-7 w-16 sm:h-8 sm:w-20"
-                  style={{
-                    background: "linear-gradient(180deg, #26262a 0%, #1a1a1d 100%)",
-                    clipPath: "polygon(32% 0%, 68% 0%, 80% 100%, 20% 100%)",
-                  }}
-                  aria-hidden="true"
-                />
-                <div
-                  className="mx-auto h-2 w-28 rounded-full sm:w-36"
-                  style={{ background: "linear-gradient(180deg, #26262a 0%, #1a1a1d 100%)" }}
-                  aria-hidden="true"
-                />
-
-                {/* Interactive Screen Tab Controls */}
-                <div className="mt-4 flex items-center justify-center gap-3">
-                  <span className="h-1.5 w-1.5 rounded-full bg-success" />
-                  <p className="text-[11px] font-medium text-muted">Actual product UI preview</p>
-                </div>
-                <div className="mt-2 flex items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveScreen("home")}
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
-                      activeScreen === "home" ? "bg-primary text-white" : "bg-surface-muted text-muted hover:text-foreground"
-                    }`}
-                  >
-                    Home
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveScreen("builders")}
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
-                      activeScreen === "builders" ? "bg-primary text-white" : "bg-surface-muted text-muted hover:text-foreground"
-                    }`}
-                  >
-                    Builders
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveScreen("timeline")}
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
-                      activeScreen === "timeline" ? "bg-primary text-white" : "bg-surface-muted text-muted hover:text-foreground"
-                    }`}
-                  >
-                    Timeline
-                  </button>
-                </div>
-              </div>
-            </div>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
+            <Link
+              href="/projects/new"
+              className="rounded-[12px] bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary-hover hover:shadow-md cursor-pointer"
+            >
+              프로젝트 등록하기
+            </Link>
+            <Link
+              href="/explore"
+              className="rounded-[12px] border border-border bg-surface px-7 py-3.5 text-sm font-semibold text-foreground shadow-sm transition-all duration-200 hover:bg-surface-muted cursor-pointer"
+            >
+              프로젝트 둘러보기
+            </Link>
           </div>
         </div>
       </section>

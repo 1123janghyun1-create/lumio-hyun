@@ -13,40 +13,57 @@ import { createClient } from "@/lib/supabase/client";
 export default function BuildersPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [builders, setBuilders] = useState<Builder[]>([]);
+  const [builders, setBuilders] = useState<Builder[]>(() => {
+    if (typeof window !== "undefined") {
+      const initial = getBuilders();
+      return initial.sort((a, b) => {
+        const diff = (b.followersCount || 0) - (a.followersCount || 0);
+        if (diff !== 0) return diff;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+    }
+    return [];
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState("All");
 
   const loadAllBuilders = async () => {
     // 1. Fetch from shared server API with currentUserId
     const shared = await fetchSharedBuilders(user?.id);
-    let currentList = [...shared];
 
-    // Ensure currently logged-in user is included and synced
-    if (user) {
-      const idx = currentList.findIndex((b) => b.id === user.id);
-      if (idx >= 0) {
-        const preservedFollowers = currentList[idx].followersCount ?? 0;
-        currentList[idx] = {
-          ...currentList[idx],
+    // Merge smoothly into state without dropping already displayed builders
+    setBuilders((prev) => {
+      const map = new Map<string, Builder>();
+      prev.forEach((b) => map.set(b.id, b));
+      shared.forEach((b) => {
+        const existing = map.get(b.id);
+        map.set(b.id, {
+          ...existing,
+          ...b,
+          followersCount: b.followersCount ?? existing?.followersCount ?? 0,
+        });
+      });
+
+      // Ensure currently logged-in user is included
+      if (user) {
+        const existing = map.get(user.id);
+        map.set(user.id, {
+          ...existing,
           ...user,
-          followersCount: preservedFollowers,
+          followersCount: existing?.followersCount ?? 0,
           isFollowing: false,
-        };
-      } else {
-        currentList = [{ ...user, followersCount: 0, isFollowing: false }, ...currentList];
-        upsertBuilder(user);
+        });
       }
-    }
 
-    // Sort by followers count descending (most followers first)
-    currentList.sort((a, b) => {
-      const diff = (b.followersCount || 0) - (a.followersCount || 0);
-      if (diff !== 0) return diff;
-      return (a.name || "").localeCompare(b.name || "");
+      const merged = Array.from(map.values());
+      merged.sort((a, b) => {
+        const diff = (b.followersCount || 0) - (a.followersCount || 0);
+        if (diff !== 0) return diff;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+
+      return merged;
     });
-
-    setBuilders(currentList);
 
     // 2. Also query Supabase profiles table for any newly registered remote users
     const supabase = createClient();

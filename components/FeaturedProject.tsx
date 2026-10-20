@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Heart, Users, ArrowUpRight } from "lucide-react";
@@ -18,6 +18,11 @@ export default function FeaturedProject({ project }: FeaturedProjectProps) {
   const [likesCount, setLikesCount] = useState(project.likesCount);
   const [isLiked, setIsLiked] = useState(project.isLiked || false);
 
+  useEffect(() => {
+    setLikesCount(project.likesCount);
+    setIsLiked(project.isLiked || false);
+  }, [project.likesCount, project.isLiked]);
+
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -27,7 +32,7 @@ export default function FeaturedProject({ project }: FeaturedProjectProps) {
       }
       return;
     }
-    const result = toggleProjectLike(project.id);
+    const result = toggleProjectLike(project.id, user.id);
     setLikesCount(result.likesCount);
     setIsLiked(result.isLiked);
   };

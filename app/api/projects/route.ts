@@ -5,9 +5,11 @@ import {
   updateSharedProject,
   deleteSharedProject,
   recordSharedProjectView,
+  recordSharedProjectOutboundClick,
+  toggleSharedProjectLike,
 } from "@/lib/serverStore";
-import { createClient } from "@/lib/supabase/client";
-
+import { getSupabase, projectToRow, rowToProject } from "@/lib/supabase/db";
+import { Project } from "@/lib/types";
 
 export async function GET(req: Request) {
   try {
@@ -17,6 +19,34 @@ export async function GET(req: Request) {
       recordSharedProjectView(viewId);
     }
 
+    // 1. Try Supabase first if connected
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          const remoteProjects = data.map(rowToProject);
+          // Resilient merge with local serverStore
+          const local = getSharedProjects();
+          const map = new Map<string, Project>();
+          remoteProjects.forEach((p) => map.set(p.id, p));
+          local.forEach((lp) => {
+            if (!map.has(lp.id)) {
+              map.set(lp.id, lp);
+            }
+          });
+          return NextResponse.json(Array.from(map.values()));
+        }
+      } catch (dbErr) {
+        console.warn("Supabase projects fetch error, fallback to store:", dbErr);
+      }
+    }
+
+    // 2. Fallback to local serverStore
     const projects = getSharedProjects();
     return NextResponse.json(projects);
   } catch (error: any) {
@@ -35,23 +65,13 @@ export async function POST(req: Request) {
 
     // Sync to Supabase projects if table exists
     try {
-      const supabase = createClient();
+      const supabase = getSupabase();
       if (supabase) {
-        await (supabase as any).from("projects").insert({
-          id: saved.id,
-          title: saved.title,
-          tagline: saved.tagline,
-          description: saved.description,
-          status: saved.status,
-          cover_image: saved.coverImage,
-          logo: saved.logo,
-          author_id: saved.author.id,
-          tags: saved.tags,
-          created_at: saved.createdAt,
-          updated_at: saved.updatedAt,
-        });
+        await supabase.from("projects").upsert(projectToRow(saved));
       }
-    } catch {}
+    } catch (e) {
+      console.warn("Supabase project insert error:", e);
+    }
 
     return NextResponse.json(saved);
   } catch (error: any) {
@@ -73,22 +93,45 @@ export async function PUT(req: Request) {
 
     // Sync to Supabase if table exists
     try {
-      const supabase = createClient();
+      const supabase = getSupabase();
       if (supabase) {
-        await (supabase as any).from("projects").update({
-          title: updated.title,
-          tagline: updated.tagline,
-          description: updated.description,
-          status: updated.status,
-          cover_image: updated.coverImage,
-          logo: updated.logo,
-          tags: updated.tags,
-          updated_at: updated.updatedAt,
-        }).eq("id", id);
+        await supabase.from("projects").upsert(projectToRow(updated));
       }
     } catch {}
 
     return NextResponse.json(updated);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const { id, action, userId } = await req.json();
+    if (!id) {
+      return NextResponse.json({ error: "Missing project id" }, { status: 400 });
+    }
+
+    if (action === "outboundClick") {
+      recordSharedProjectOutboundClick(id);
+      return NextResponse.json({ success: true, id });
+    }
+
+    // Default action: toggle like
+    const result = toggleSharedProjectLike(id, userId);
+
+    // Sync like count to Supabase
+    try {
+      const supabase = getSupabase();
+      if (supabase) {
+        await supabase
+          .from("projects")
+          .update({ likes_count: result.likesCount })
+          .eq("id", id);
+      }
+    } catch {}
+
+    return NextResponse.json({ success: true, id, ...result });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -111,9 +154,9 @@ export async function DELETE(req: Request) {
 
     // Sync to Supabase if table exists
     try {
-      const supabase = createClient();
+      const supabase = getSupabase();
       if (supabase) {
-        await (supabase as any).from("projects").delete().eq("id", id);
+        await supabase.from("projects").delete().eq("id", id);
       }
     } catch {}
 

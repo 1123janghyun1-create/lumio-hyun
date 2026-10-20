@@ -29,6 +29,7 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: "lumio_clean_notifications",
   CURRENT_USER: "lumio_clean_current_user",
   LIKED_PROJECT_IDS: "lumio_clean_liked_projects",
+  LIKED_COMMUNITY_IDS: "lumio_clean_liked_community",
   UPVOTED_FEEDBACK_IDS: "lumio_clean_upvoted_feedbacks",
   FOLLOWED_BUILDER_IDS: "lumio_clean_followed_builders",
 };
@@ -80,16 +81,83 @@ export async function syncAllWithServer(): Promise<void> {
 
     let changed = false;
 
+    // Resilient Projects sync
     if (pRes.status === "fulfilled" && Array.isArray(pRes.value)) {
-      setStoredItem(STORAGE_KEYS.PROJECTS, pRes.value);
+      const localProjects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, []);
+      const map = new Map<string, Project>();
+      localProjects.forEach((p) => map.set(p.id, p));
+
+      const serverIds = new Set<string>();
+      pRes.value.forEach((sp: Project) => {
+        serverIds.add(sp.id);
+        const existing = map.get(sp.id);
+        map.set(sp.id, {
+          ...existing,
+          ...sp,
+          likesCount: Math.max(existing?.likesCount ?? 0, sp.likesCount ?? 0),
+          viewsCount: Math.max(existing?.viewsCount ?? 0, sp.viewsCount ?? 0),
+          commentsCount: Math.max(existing?.commentsCount ?? 0, sp.commentsCount ?? 0),
+          feedbacksCount: Math.max(existing?.feedbacksCount ?? 0, sp.feedbacksCount ?? 0),
+        });
+      });
+
+      // Re-seed server if server restarted and lost local user projects
+      localProjects.forEach((lp) => {
+        if (!serverIds.has(lp.id)) {
+          fetch("/api/projects", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(lp),
+          }).catch(() => {});
+        }
+      });
+
+      setStoredItem(STORAGE_KEYS.PROJECTS, Array.from(map.values()));
       changed = true;
     }
-    if (bRes.status === "fulfilled" && Array.isArray(bRes.value)) {
-      setStoredItem(STORAGE_KEYS.BUILDERS, bRes.value);
+
+    // Resilient Builders sync
+    if (bRes.status === "fulfilled" && Array.isArray(bRes.value) && bRes.value.length > 0) {
+      const localBuilders = getStoredItem<Builder[]>(STORAGE_KEYS.BUILDERS, []);
+      const map = new Map<string, Builder>();
+      localBuilders.forEach((b) => map.set(b.id, b));
+      bRes.value.forEach((b: any) => {
+        const existing = map.get(b.id);
+        map.set(b.id, { ...existing, ...b });
+      });
+      setStoredItem(STORAGE_KEYS.BUILDERS, Array.from(map.values()));
       changed = true;
     }
+
+    // Resilient Community sync
     if (cRes.status === "fulfilled" && Array.isArray(cRes.value)) {
-      setStoredItem(STORAGE_KEYS.COMMUNITY, cRes.value);
+      const localPosts = getStoredItem<CommunityPost[]>(STORAGE_KEYS.COMMUNITY, []);
+      const map = new Map<string, CommunityPost>();
+      localPosts.forEach((p) => map.set(p.id, p));
+
+      const serverIds = new Set<string>();
+      cRes.value.forEach((sp: CommunityPost) => {
+        serverIds.add(sp.id);
+        const existing = map.get(sp.id);
+        map.set(sp.id, {
+          ...existing,
+          ...sp,
+          likesCount: Math.max(existing?.likesCount ?? 0, sp.likesCount ?? 0),
+          commentsCount: Math.max(existing?.commentsCount ?? 0, sp.commentsCount ?? 0),
+        });
+      });
+
+      localPosts.forEach((lp) => {
+        if (!serverIds.has(lp.id)) {
+          fetch("/api/community", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(lp),
+          }).catch(() => {});
+        }
+      });
+
+      setStoredItem(STORAGE_KEYS.COMMUNITY, Array.from(map.values()));
       changed = true;
     }
 
@@ -107,12 +175,44 @@ export async function fetchSharedProjects(): Promise<Project[]> {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
-        setStoredItem(STORAGE_KEYS.PROJECTS, data);
+        const localProjects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, []);
+        const map = new Map<string, Project>();
+        localProjects.forEach((p) => map.set(p.id, p));
+
+        const serverIds = new Set<string>();
+        data.forEach((sp: Project) => {
+          serverIds.add(sp.id);
+          const existing = map.get(sp.id);
+          map.set(sp.id, {
+            ...existing,
+            ...sp,
+            likesCount: Math.max(existing?.likesCount ?? 0, sp.likesCount ?? 0),
+            viewsCount: Math.max(existing?.viewsCount ?? 0, sp.viewsCount ?? 0),
+            commentsCount: Math.max(existing?.commentsCount ?? 0, sp.commentsCount ?? 0),
+            feedbacksCount: Math.max(existing?.feedbacksCount ?? 0, sp.feedbacksCount ?? 0),
+          });
+        });
+
+        // Re-push local-only projects if server restarted
+        localProjects.forEach((lp) => {
+          if (!serverIds.has(lp.id)) {
+            fetch("/api/projects", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(lp),
+            }).catch(() => {});
+          }
+        });
+
+        const merged = Array.from(map.values());
+        setStoredItem(STORAGE_KEYS.PROJECTS, merged);
+
         const likedIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_PROJECT_IDS, []);
         const followedIds = getStoredItem<string[]>(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, []);
-        return data.map((p) => ({
+        return merged.map((p) => ({
           ...p,
           isLiked: likedIds.includes(p.id),
+          likesCount: Math.max(p.likesCount ?? 0, likedIds.includes(p.id) ? 1 : 0),
           author: p.author
             ? {
                 ...p.author,
@@ -136,16 +236,26 @@ export async function fetchSharedBuilders(currentUserId?: string): Promise<Build
       const data = await res.json();
       if (Array.isArray(data)) {
         const followedIds = getStoredItem<string[]>(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, []);
-        const merged = data.map((b) => {
+        const localBuilders = getStoredItem<Builder[]>(STORAGE_KEYS.BUILDERS, []);
+
+        // Resilient merge: keep all known local builders and update with incoming data
+        const map = new Map<string, Builder>();
+        localBuilders.forEach((b) => map.set(b.id, b));
+
+        data.forEach((b) => {
+          const existing = map.get(b.id);
           const isFollowing = currentUserId
             ? (b.isFollowing ?? followedIds.includes(b.id))
             : followedIds.includes(b.id);
-          return {
+          map.set(b.id, {
+            ...existing,
             ...b,
-            followersCount: b.followersCount ?? 0,
+            followersCount: b.followersCount ?? existing?.followersCount ?? 0,
             isFollowing,
-          };
+          });
         });
+
+        const merged = Array.from(map.values());
 
         if (currentUserId) {
           const serverFollowedIds = merged.filter((b) => b.isFollowing).map((b) => b.id);
@@ -166,8 +276,41 @@ export async function fetchSharedCommunityPosts(): Promise<CommunityPost[]> {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
-        setStoredItem(STORAGE_KEYS.COMMUNITY, data);
-        return data;
+        const localPosts = getStoredItem<CommunityPost[]>(STORAGE_KEYS.COMMUNITY, []);
+        const map = new Map<string, CommunityPost>();
+        localPosts.forEach((p) => map.set(p.id, p));
+
+        const serverIds = new Set<string>();
+        data.forEach((sp: CommunityPost) => {
+          serverIds.add(sp.id);
+          const existing = map.get(sp.id);
+          map.set(sp.id, {
+            ...existing,
+            ...sp,
+            likesCount: Math.max(existing?.likesCount ?? 0, sp.likesCount ?? 0),
+            commentsCount: Math.max(existing?.commentsCount ?? 0, sp.commentsCount ?? 0),
+          });
+        });
+
+        localPosts.forEach((lp) => {
+          if (!serverIds.has(lp.id)) {
+            fetch("/api/community", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(lp),
+            }).catch(() => {});
+          }
+        });
+
+        const merged = Array.from(map.values());
+        setStoredItem(STORAGE_KEYS.COMMUNITY, merged);
+
+        const likedPostIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_COMMUNITY_IDS, []);
+        return merged.map((p) => ({
+          ...p,
+          isLiked: likedPostIds.includes(p.id),
+          likesCount: Math.max(p.likesCount ?? 0, likedPostIds.includes(p.id) ? 1 : 0),
+        }));
       }
     }
   } catch {}
@@ -194,16 +337,20 @@ export function getProjects(): Project[] {
   const projects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, INITIAL_PROJECTS);
   const likedIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_PROJECT_IDS, []);
   const followedIds = getStoredItem<string[]>(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, []);
-  return projects.map((p) => ({
-    ...p,
-    isLiked: likedIds.includes(p.id),
-    author: p.author
-      ? {
-          ...p.author,
-          isFollowing: followedIds.includes(p.author.id),
-        }
-      : p.author,
-  }));
+  return projects.map((p) => {
+    const isLiked = likedIds.includes(p.id);
+    return {
+      ...p,
+      isLiked,
+      likesCount: Math.max(p.likesCount ?? 0, isLiked ? 1 : 0),
+      author: p.author
+        ? {
+            ...p.author,
+            isFollowing: followedIds.includes(p.author.id),
+          }
+        : p.author,
+    };
+  });
 }
 
 export function getProjectById(id: string): Project | undefined {
@@ -295,7 +442,7 @@ export function deleteProject(id: string): boolean {
   return true;
 }
 
-export function toggleProjectLike(projectId: string): { likesCount: number; isLiked: boolean } {
+export function toggleProjectLike(projectId: string, userId?: string): { likesCount: number; isLiked: boolean } {
   const projects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, INITIAL_PROJECTS);
   const likedIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_PROJECT_IDS, []);
   
@@ -317,6 +464,16 @@ export function toggleProjectLike(projectId: string): { likesCount: number; isLi
   });
 
   setStoredItem(STORAGE_KEYS.PROJECTS, updatedProjects);
+
+  // Sync to server
+  if (typeof window !== "undefined") {
+    fetch("/api/projects", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: projectId, action: "like", userId }),
+    }).catch(() => {});
+  }
+
   return { likesCount: newLikesCount, isLiked: !isCurrentlyLiked };
 }
 
@@ -329,23 +486,44 @@ export function recordProjectView(projectId: string): void {
     return p;
   });
   setStoredItem(STORAGE_KEYS.PROJECTS, updated);
+
+  if (typeof window !== "undefined") {
+    fetch(`/api/projects?view=${encodeURIComponent(projectId)}`, { cache: "no-store" }).catch(() => {});
+  }
 }
 
 export function recordProjectOutboundClick(projectId: string): void {
   const projects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, INITIAL_PROJECTS);
   const updated = projects.map((p) => {
-    if (p.id === projectId && p.insights) {
+    if (p.id === projectId) {
+      const currentInsights = p.insights || {
+        viewsTotal: p.viewsCount || 0,
+        likesTotal: p.likesCount || 0,
+        outboundClicks: 0,
+        viewsByDay: [],
+        referrers: [],
+        trendingRank: 1,
+        rankChange: 0,
+      };
       return {
         ...p,
         insights: {
-          ...p.insights,
-          outboundClicks: (p.insights.outboundClicks || 0) + 1,
+          ...currentInsights,
+          outboundClicks: (currentInsights.outboundClicks || 0) + 1,
         },
       };
     }
     return p;
   });
   setStoredItem(STORAGE_KEYS.PROJECTS, updated);
+
+  if (typeof window !== "undefined") {
+    fetch("/api/projects", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: projectId, action: "outboundClick" }),
+    }).catch(() => {});
+  }
 }
 
 // Feedbacks
@@ -358,6 +536,52 @@ export function getFeedbacksByProject(projectId: string): FeedbackItem[] {
       ...f,
       isUpvoted: upvotedIds.includes(f.id),
     }));
+}
+
+export async function fetchSharedFeedbacks(projectId: string): Promise<FeedbackItem[]> {
+  try {
+    const res = await fetch(`/api/feedbacks?projectId=${encodeURIComponent(projectId)}`, { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        const localFeedbacks = getStoredItem<FeedbackItem[]>(STORAGE_KEYS.FEEDBACKS, INITIAL_FEEDBACKS);
+        const map = new Map<string, FeedbackItem>();
+        localFeedbacks.forEach((f) => map.set(f.id, f));
+
+        data.forEach((sf: FeedbackItem) => {
+          const existing = map.get(sf.id);
+          map.set(sf.id, {
+            ...existing,
+            ...sf,
+            upvotes: Math.max(existing?.upvotes || 0, sf.upvotes || 0),
+          });
+        });
+
+        // Sync local feedbacks missing from server
+        localFeedbacks
+          .filter((lf) => lf.projectId === projectId && !data.some((d) => d.id === lf.id))
+          .forEach((missing) => {
+            fetch("/api/feedbacks", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(missing),
+            }).catch(() => {});
+          });
+
+        const merged = Array.from(map.values());
+        setStoredItem(STORAGE_KEYS.FEEDBACKS, merged);
+
+        const upvotedIds = getStoredItem<string[]>(STORAGE_KEYS.UPVOTED_FEEDBACK_IDS, []);
+        return merged
+          .filter((f) => f.projectId === projectId)
+          .map((f) => ({
+            ...f,
+            isUpvoted: upvotedIds.includes(f.id),
+          }));
+      }
+    }
+  } catch {}
+  return getFeedbacksByProject(projectId);
 }
 
 export function addFeedback(feedback: Omit<FeedbackItem, "id" | "createdAt" | "upvotes" | "commentsCount">): FeedbackItem {
@@ -383,6 +607,14 @@ export function addFeedback(feedback: Omit<FeedbackItem, "id" | "createdAt" | "u
     p.id === feedback.projectId ? { ...p, feedbacksCount: (p.feedbacksCount || 0) + 1 } : p
   );
   setStoredItem(STORAGE_KEYS.PROJECTS, updatedProjects);
+
+  if (typeof window !== "undefined") {
+    fetch("/api/feedbacks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newItem),
+    }).catch(() => {});
+  }
 
   return newItem;
 }
@@ -417,6 +649,45 @@ export function getCommentsByProject(projectId: string): CommentItem[] {
   return comments.filter((c) => c.projectId === projectId);
 }
 
+export async function fetchSharedComments(projectId: string): Promise<CommentItem[]> {
+  try {
+    const res = await fetch(`/api/comments?projectId=${encodeURIComponent(projectId)}`, { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        const localComments = getStoredItem<CommentItem[]>(STORAGE_KEYS.COMMENTS, INITIAL_COMMENTS);
+        const map = new Map<string, CommentItem>();
+        localComments.forEach((c) => map.set(c.id, c));
+
+        data.forEach((sc: CommentItem) => {
+          const existing = map.get(sc.id);
+          map.set(sc.id, {
+            ...existing,
+            ...sc,
+            likes: Math.max(existing?.likes || 0, sc.likes || 0),
+          });
+        });
+
+        localComments
+          .filter((lc) => lc.projectId === projectId && !data.some((d) => d.id === lc.id))
+          .forEach((missing) => {
+            fetch("/api/comments", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(missing),
+            }).catch(() => {});
+          });
+
+        const merged = Array.from(map.values());
+        setStoredItem(STORAGE_KEYS.COMMENTS, merged);
+
+        return merged.filter((c) => c.projectId === projectId);
+      }
+    }
+  } catch {}
+  return getCommentsByProject(projectId);
+}
+
 export function addComment(comment: Omit<CommentItem, "id" | "createdAt" | "likes">): CommentItem {
   const comments = getStoredItem<CommentItem[]>(STORAGE_KEYS.COMMENTS, INITIAL_COMMENTS);
   const newItem: CommentItem = {
@@ -436,6 +707,14 @@ export function addComment(comment: Omit<CommentItem, "id" | "createdAt" | "like
   );
   setStoredItem(STORAGE_KEYS.PROJECTS, updatedProjects);
 
+  if (typeof window !== "undefined") {
+    fetch("/api/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newItem),
+    }).catch(() => {});
+  }
+
   return newItem;
 }
 
@@ -454,6 +733,11 @@ export function deleteComment(commentId: string): boolean {
     );
     setStoredItem(STORAGE_KEYS.PROJECTS, updatedProjects);
   }
+
+  if (typeof window !== "undefined") {
+    fetch(`/api/comments?id=${encodeURIComponent(commentId)}`, { method: "DELETE" }).catch(() => {});
+  }
+
   return true;
 }
 
@@ -486,7 +770,50 @@ export function deleteTimelineUpdate(timelineId: string): boolean {
 
 // Community Posts
 export function getCommunityPosts(): CommunityPost[] {
-  return getStoredItem<CommunityPost[]>(STORAGE_KEYS.COMMUNITY, INITIAL_COMMUNITY_POSTS);
+  const posts = getStoredItem<CommunityPost[]>(STORAGE_KEYS.COMMUNITY, INITIAL_COMMUNITY_POSTS);
+  const likedPostIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_COMMUNITY_IDS, []);
+  return posts.map((p) => {
+    const isLiked = likedPostIds.includes(p.id);
+    return {
+      ...p,
+      isLiked,
+      likesCount: Math.max(p.likesCount ?? 0, isLiked ? 1 : 0),
+    };
+  });
+}
+
+export function toggleCommunityLike(postId: string, userId?: string): { likesCount: number; isLiked: boolean } {
+  const posts = getStoredItem<CommunityPost[]>(STORAGE_KEYS.COMMUNITY, INITIAL_COMMUNITY_POSTS);
+  const likedIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_COMMUNITY_IDS, []);
+  
+  const isCurrentlyLiked = likedIds.includes(postId);
+  const newLikedIds = isCurrentlyLiked
+    ? likedIds.filter((id) => id !== postId)
+    : [...likedIds, postId];
+
+  setStoredItem(STORAGE_KEYS.LIKED_COMMUNITY_IDS, newLikedIds);
+
+  let newLikesCount = 0;
+  const updatedPosts = posts.map((p) => {
+    if (p.id === postId) {
+      const delta = isCurrentlyLiked ? -1 : 1;
+      newLikesCount = Math.max(0, p.likesCount + delta);
+      return { ...p, likesCount: newLikesCount };
+    }
+    return p;
+  });
+
+  setStoredItem(STORAGE_KEYS.COMMUNITY, updatedPosts);
+
+  if (typeof window !== "undefined") {
+    fetch("/api/community", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: postId, userId }),
+    }).catch(() => {});
+  }
+
+  return { likesCount: newLikesCount, isLiked: !isCurrentlyLiked };
 }
 
 export function addCommunityPost(post: Omit<CommunityPost, "id" | "createdAt" | "likesCount" | "commentsCount">): CommunityPost {
@@ -541,6 +868,10 @@ export function deleteFeedback(feedbackId: string): boolean {
         : p
     );
     setStoredItem(STORAGE_KEYS.PROJECTS, updatedProjects);
+  }
+
+  if (typeof window !== "undefined") {
+    fetch(`/api/feedbacks?id=${encodeURIComponent(feedbackId)}`, { method: "DELETE" }).catch(() => {});
   }
   return true;
 }

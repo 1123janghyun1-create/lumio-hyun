@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, MessageSquare, Heart, Sparkles, Filter, Send, Upload, X, Image as ImageIcon, Trash2 } from "lucide-react";
 import { CommunityPost } from "@/lib/types";
-import { getCommunityPosts, addCommunityPost, deleteCommunityPost, fetchSharedCommunityPosts } from "@/lib/storage";
+import { getCommunityPosts, addCommunityPost, deleteCommunityPost, fetchSharedCommunityPosts, toggleCommunityLike } from "@/lib/storage";
 import { useAuth } from "@/context/AuthContext";
 import { formatRelativeTime } from "@/lib/utils";
 import { uploadToCloudinary } from "@/lib/cloudinary";
@@ -91,18 +91,17 @@ export default function CommunityPage() {
       }
       return;
     }
+    const result = toggleCommunityLike(postId, user.id);
     setPosts((prev) =>
-      prev.map((p) => {
-        if (p.id === postId) {
-          const delta = p.isLiked ? -1 : 1;
-          return {
-            ...p,
-            likesCount: Math.max(0, p.likesCount + delta),
-            isLiked: !p.isLiked,
-          };
-        }
-        return p;
-      })
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              likesCount: result.likesCount,
+              isLiked: result.isLiked,
+            }
+          : p
+      )
     );
   };
 

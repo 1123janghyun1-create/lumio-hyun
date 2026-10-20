@@ -1,11 +1,13 @@
 import fs from "fs";
 import path from "path";
 import { Builder, Project, CommunityPost, FeedbackItem, CommentItem, TimelineUpdate } from "./types";
-import { createClient } from "./supabase/client";
+import seedStoreData from "@/data/lumio-store.json";
 
 interface StoreData {
   builders: Builder[];
   follows?: Record<string, string[]>; // builderId -> array of follower user IDs
+  projectLikes?: Record<string, string[]>; // projectId -> array of user IDs
+  communityLikes?: Record<string, string[]>; // postId -> array of user IDs
   projects: Project[];
   communityPosts: CommunityPost[];
   feedbacks: FeedbackItem[];
@@ -14,20 +16,11 @@ interface StoreData {
 }
 
 const IS_VERCEL = process.env.VERCEL === "1" || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
-const SEED_FILE = path.join(process.cwd(), "data", "lumio-store.json");
 const DATA_DIR = IS_VERCEL ? path.join("/tmp", "zemix-store") : path.join(process.cwd(), "data");
 const STORE_FILE = path.join(DATA_DIR, "lumio-store.json");
 
 function getEmptyStore(): StoreData {
-  return {
-    builders: [],
-    follows: {},
-    projects: [],
-    communityPosts: [],
-    feedbacks: [],
-    comments: [],
-    timeline: [],
-  };
+  return JSON.parse(JSON.stringify(seedStoreData)) as StoreData;
 }
 
 function ensureStoreFile(): StoreData {
@@ -37,18 +30,10 @@ function ensureStoreFile(): StoreData {
     }
 
     if (!fs.existsSync(STORE_FILE)) {
-      let initial: StoreData;
-      if (IS_VERCEL && fs.existsSync(SEED_FILE)) {
-        try {
-          const seedContent = fs.readFileSync(SEED_FILE, "utf-8");
-          initial = JSON.parse(seedContent) as StoreData;
-        } catch {
-          initial = getEmptyStore();
-        }
-      } else {
-        initial = getEmptyStore();
-      }
+      const initial: StoreData = getEmptyStore();
       if (!initial.follows) initial.follows = {};
+      if (!initial.projectLikes) initial.projectLikes = {};
+      if (!initial.communityLikes) initial.communityLikes = {};
       fs.writeFileSync(STORE_FILE, JSON.stringify(initial, null, 2), "utf-8");
       return initial;
     }
@@ -56,6 +41,20 @@ function ensureStoreFile(): StoreData {
     const content = fs.readFileSync(STORE_FILE, "utf-8");
     const parsed = JSON.parse(content) as StoreData;
     if (!parsed.follows) parsed.follows = {};
+    if (!parsed.projectLikes) parsed.projectLikes = {};
+    if (!parsed.communityLikes) parsed.communityLikes = {};
+
+    // Ensure all bundled seed builders are present
+    const existingIds = new Set(parsed.builders.map((b) => b.id));
+    if (Array.isArray(seedStoreData.builders)) {
+      (seedStoreData.builders as Builder[]).forEach((seedB) => {
+        if (!existingIds.has(seedB.id)) {
+          parsed.builders.push(seedB);
+          existingIds.add(seedB.id);
+        }
+      });
+    }
+
     return parsed;
   } catch (err) {
     console.error("Error reading store file:", err);
@@ -69,13 +68,6 @@ function writeStoreFile(data: StoreData): void {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2), "utf-8");
-
-    // In local dev, also keep SEED_FILE updated if it's a different path
-    if (STORE_FILE !== SEED_FILE && !IS_VERCEL && fs.existsSync(path.dirname(SEED_FILE))) {
-      try {
-        fs.writeFileSync(SEED_FILE, JSON.stringify(data, null, 2), "utf-8");
-      } catch {}
-    }
   } catch (err) {
     console.error("Error writing store file:", err);
   }
@@ -208,21 +200,37 @@ export function getSharedProjectById(id: string): Project | undefined {
   return store.projects.find((p) => p.id === id);
 }
 
-export function saveSharedProject(projectData: Omit<Project, "id" | "createdAt" | "updatedAt" | "likesCount" | "viewsCount" | "commentsCount" | "feedbacksCount" | "followersCount">): Project {
+export function saveSharedProject(projectData: any): Project {
   const store = ensureStoreFile();
+  const id = projectData.id || `proj-${Date.now()}`;
+  const existingIdx = store.projects.findIndex((p) => p.id === id);
+
   const newProject: Project = {
     ...projectData,
-    id: `proj-${Date.now()}`,
-    likesCount: 0,
-    viewsCount: 1,
-    commentsCount: 0,
-    feedbacksCount: 0,
-    followersCount: 0,
-    createdAt: new Date().toISOString(),
+    id,
+    likesCount: projectData.likesCount ?? (existingIdx >= 0 ? store.projects[existingIdx].likesCount : 0),
+    viewsCount: projectData.viewsCount ?? (existingIdx >= 0 ? store.projects[existingIdx].viewsCount : 1),
+    commentsCount: projectData.commentsCount ?? (existingIdx >= 0 ? store.projects[existingIdx].commentsCount : 0),
+    feedbacksCount: projectData.feedbacksCount ?? (existingIdx >= 0 ? store.projects[existingIdx].feedbacksCount : 0),
+    followersCount: projectData.followersCount ?? 0,
+    insights: projectData.insights || (existingIdx >= 0 ? store.projects[existingIdx].insights : {
+      viewsTotal: projectData.viewsCount ?? 1,
+      likesTotal: projectData.likesCount ?? 0,
+      outboundClicks: 0,
+      viewsByDay: [],
+      referrers: [],
+      trendingRank: 1,
+      rankChange: 0,
+    }),
+    createdAt: projectData.createdAt || (existingIdx >= 0 ? store.projects[existingIdx].createdAt : new Date().toISOString()),
     updatedAt: new Date().toISOString(),
   };
 
-  store.projects = [newProject, ...store.projects];
+  if (existingIdx >= 0) {
+    store.projects[existingIdx] = newProject;
+  } else {
+    store.projects = [newProject, ...store.projects];
+  }
   writeStoreFile(store);
 
   // Auto add author to shared builders
@@ -272,23 +280,90 @@ export function recordSharedProjectView(id: string): void {
   writeStoreFile(store);
 }
 
+export function recordSharedProjectOutboundClick(id: string): void {
+  const store = ensureStoreFile();
+  store.projects = store.projects.map((p) => {
+    if (p.id === id) {
+      const ins = p.insights || {
+        viewsTotal: p.viewsCount || 0,
+        likesTotal: p.likesCount || 0,
+        outboundClicks: 0,
+        viewsByDay: [],
+        referrers: [],
+        trendingRank: 1,
+        rankChange: 0,
+      };
+      return {
+        ...p,
+        insights: {
+          ...ins,
+          outboundClicks: (ins.outboundClicks || 0) + 1,
+        },
+      };
+    }
+    return p;
+  });
+  writeStoreFile(store);
+}
+
+export function toggleSharedProjectLike(projectId: string, userId?: string): { isLiked: boolean; likesCount: number } {
+  const store = ensureStoreFile();
+  if (!store.projectLikes) store.projectLikes = {};
+  if (!store.projectLikes[projectId]) store.projectLikes[projectId] = [];
+
+  const list = store.projectLikes[projectId];
+  let isLiked = false;
+
+  if (userId) {
+    const idx = list.indexOf(userId);
+    if (idx >= 0) {
+      list.splice(idx, 1);
+      isLiked = false;
+    } else {
+      list.push(userId);
+      isLiked = true;
+    }
+  } else {
+    isLiked = list.length === 0;
+    if (isLiked) {
+      list.push("anon-" + Date.now());
+    } else {
+      list.pop();
+    }
+  }
+
+  const count = list.length;
+  store.projects = store.projects.map((p) =>
+    p.id === projectId ? { ...p, likesCount: count } : p
+  );
+  writeStoreFile(store);
+  return { isLiked, likesCount: count };
+}
+
 // ----------------- COMMUNITY POSTS -----------------
 export function getSharedCommunityPosts(): CommunityPost[] {
   const store = ensureStoreFile();
   return store.communityPosts;
 }
 
-export function addSharedCommunityPost(post: Omit<CommunityPost, "id" | "createdAt" | "likesCount" | "commentsCount">): CommunityPost {
+export function addSharedCommunityPost(post: any): CommunityPost {
   const store = ensureStoreFile();
+  const id = post.id || `post-${Date.now()}`;
+  const existingIdx = store.communityPosts.findIndex((p) => p.id === id);
+
   const newPost: CommunityPost = {
     ...post,
-    id: `post-${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    likesCount: 0,
-    commentsCount: 0,
+    id,
+    createdAt: post.createdAt || (existingIdx >= 0 ? store.communityPosts[existingIdx].createdAt : new Date().toISOString()),
+    likesCount: post.likesCount ?? (existingIdx >= 0 ? store.communityPosts[existingIdx].likesCount : 0),
+    commentsCount: post.commentsCount ?? (existingIdx >= 0 ? store.communityPosts[existingIdx].commentsCount : 0),
   };
 
-  store.communityPosts = [newPost, ...store.communityPosts];
+  if (existingIdx >= 0) {
+    store.communityPosts[existingIdx] = newPost;
+  } else {
+    store.communityPosts = [newPost, ...store.communityPosts];
+  }
   writeStoreFile(store);
 
   if (post.author) {
@@ -305,26 +380,69 @@ export function deleteSharedCommunityPost(id: string): boolean {
   return true;
 }
 
+export function toggleSharedCommunityLike(postId: string, userId?: string): { isLiked: boolean; likesCount: number } {
+  const store = ensureStoreFile();
+  if (!store.communityLikes) store.communityLikes = {};
+  if (!store.communityLikes[postId]) store.communityLikes[postId] = [];
+
+  const list = store.communityLikes[postId];
+  let isLiked = false;
+
+  if (userId) {
+    const idx = list.indexOf(userId);
+    if (idx >= 0) {
+      list.splice(idx, 1);
+      isLiked = false;
+    } else {
+      list.push(userId);
+      isLiked = true;
+    }
+  } else {
+    isLiked = list.length === 0;
+    if (isLiked) {
+      list.push("anon-" + Date.now());
+    } else {
+      list.pop();
+    }
+  }
+
+  const count = list.length;
+  store.communityPosts = store.communityPosts.map((p) =>
+    p.id === postId ? { ...p, likesCount: count } : p
+  );
+  writeStoreFile(store);
+  return { isLiked, likesCount: count };
+}
+
 // ----------------- FEEDBACKS -----------------
 export function getSharedFeedbacks(projectId: string): FeedbackItem[] {
   const store = ensureStoreFile();
   return store.feedbacks.filter((f) => f.projectId === projectId);
 }
 
-export function addSharedFeedback(feedback: Omit<FeedbackItem, "id" | "createdAt" | "upvotes" | "commentsCount">): FeedbackItem {
+export function addSharedFeedback(feedback: any): FeedbackItem {
   const store = ensureStoreFile();
+  const id = feedback.id || `fb-${Date.now()}`;
+  const existingIdx = store.feedbacks.findIndex((f) => f.id === id);
+
   const newItem: FeedbackItem = {
     ...feedback,
-    id: `fb-${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    upvotes: 1,
-    commentsCount: 0,
+    id,
+    createdAt: feedback.createdAt || (existingIdx >= 0 ? store.feedbacks[existingIdx].createdAt : new Date().toISOString()),
+    upvotes: feedback.upvotes ?? (existingIdx >= 0 ? store.feedbacks[existingIdx].upvotes : 1),
+    commentsCount: feedback.commentsCount ?? (existingIdx >= 0 ? store.feedbacks[existingIdx].commentsCount : 0),
   };
-  store.feedbacks = [newItem, ...store.feedbacks];
+
+  if (existingIdx >= 0) {
+    store.feedbacks[existingIdx] = newItem;
+  } else {
+    store.feedbacks = [newItem, ...store.feedbacks];
+  }
 
   // Update project feedbacksCount
+  const count = store.feedbacks.filter((f) => f.projectId === feedback.projectId).length;
   store.projects = store.projects.map((p) =>
-    p.id === feedback.projectId ? { ...p, feedbacksCount: (p.feedbacksCount || 0) + 1 } : p
+    p.id === feedback.projectId ? { ...p, feedbacksCount: count } : p
   );
 
   writeStoreFile(store);
@@ -336,8 +454,9 @@ export function deleteSharedFeedback(id: string): boolean {
   const target = store.feedbacks.find((f) => f.id === id);
   store.feedbacks = store.feedbacks.filter((f) => f.id !== id);
   if (target) {
+    const count = store.feedbacks.filter((f) => f.projectId === target.projectId).length;
     store.projects = store.projects.map((p) =>
-      p.id === target.projectId ? { ...p, feedbacksCount: Math.max(0, (p.feedbacksCount || 0) - 1) } : p
+      p.id === target.projectId ? { ...p, feedbacksCount: count } : p
     );
   }
   writeStoreFile(store);
@@ -350,19 +469,28 @@ export function getSharedComments(projectId: string): CommentItem[] {
   return store.comments.filter((c) => c.projectId === projectId);
 }
 
-export function addSharedComment(comment: Omit<CommentItem, "id" | "createdAt" | "likes">): CommentItem {
+export function addSharedComment(comment: any): CommentItem {
   const store = ensureStoreFile();
+  const id = comment.id || `cm-${Date.now()}`;
+  const existingIdx = store.comments.findIndex((c) => c.id === id);
+
   const newItem: CommentItem = {
     ...comment,
-    id: `cm-${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    likes: 0,
+    id,
+    createdAt: comment.createdAt || (existingIdx >= 0 ? store.comments[existingIdx].createdAt : new Date().toISOString()),
+    likes: comment.likes ?? (existingIdx >= 0 ? store.comments[existingIdx].likes : 0),
   };
-  store.comments = [...store.comments, newItem];
+
+  if (existingIdx >= 0) {
+    store.comments[existingIdx] = newItem;
+  } else {
+    store.comments = [...store.comments, newItem];
+  }
 
   // Update project commentsCount
+  const count = store.comments.filter((c) => c.projectId === comment.projectId).length;
   store.projects = store.projects.map((p) =>
-    p.id === comment.projectId ? { ...p, commentsCount: (p.commentsCount || 0) + 1 } : p
+    p.id === comment.projectId ? { ...p, commentsCount: count } : p
   );
 
   writeStoreFile(store);
@@ -374,8 +502,9 @@ export function deleteSharedComment(id: string): boolean {
   const target = store.comments.find((c) => c.id === id);
   store.comments = store.comments.filter((c) => c.id !== id);
   if (target) {
+    const count = store.comments.filter((c) => c.projectId === target.projectId).length;
     store.projects = store.projects.map((p) =>
-      p.id === target.projectId ? { ...p, commentsCount: Math.max(0, (p.commentsCount || 0) - 1) } : p
+      p.id === target.projectId ? { ...p, commentsCount: count } : p
     );
   }
   writeStoreFile(store);

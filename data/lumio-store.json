@@ -1,6 +1,92 @@
 {
   "builders": [
     {
+      "id": "builder-6",
+      "name": "Hawon Min",
+      "handle": "hawon",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "bio": "Zemix 창립자. 함께 만들고 성장하는 사이드 프로젝트 생태계를 만들어갑니다.",
+      "role": "Founder & Maker",
+      "isStartingMember": true,
+      "isFoundingMember": true,
+      "projectsCount": 3,
+      "totalLikes": 42,
+      "followersCount": 56,
+      "isFollowing": false
+    },
+    {
+      "id": "builder-1",
+      "name": "Dev An",
+      "handle": "dev_an",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "bio": "실시간 웹 멀티플레이어 게임 및 인터랙티브 웹 프로덕트를 만듭니다.",
+      "role": "Full-stack Developer",
+      "isStartingMember": true,
+      "isFoundingMember": true,
+      "projectsCount": 2,
+      "totalLikes": 25,
+      "followersCount": 18,
+      "socials": {
+        "github": "https://github.com",
+        "website": "https://waggle.games"
+      },
+      "isFollowing": false
+    },
+    {
+      "id": "builder-4",
+      "name": "권정민",
+      "handle": "jeongmin",
+      "avatar": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80",
+      "bio": "일상의 감성을 디지털로 담아내는 서비스를 디자인하고 만듭니다.",
+      "role": "Product Designer",
+      "isStartingMember": true,
+      "projectsCount": 1,
+      "totalLikes": 8,
+      "followersCount": 15
+    },
+    {
+      "id": "builder-2",
+      "name": "Raneree",
+      "handle": "raneree",
+      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+      "bio": "AI 기반 개발자 도구와 Windows 웹 에디터를 개발하고 있습니다.",
+      "role": "Software Engineer",
+      "isStartingMember": true,
+      "projectsCount": 1,
+      "totalLikes": 19,
+      "followersCount": 12,
+      "socials": {
+        "github": "https://github.com"
+      }
+    },
+    {
+      "id": "builder-3",
+      "name": "줌덕잉",
+      "handle": "zoomduck",
+      "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+      "bio": "보안과 인공지능에 관심이 많은 보안 엔지니어 겸 사이드 프로젝트 메이커.",
+      "role": "Security Engineer",
+      "isStartingMember": true,
+      "projectsCount": 1,
+      "totalLikes": 14,
+      "followersCount": 9,
+      "socials": {
+        "twitter": "https://twitter.com"
+      }
+    },
+    {
+      "id": "builder-5",
+      "name": "김현중",
+      "handle": "hyunjoong",
+      "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+      "bio": "팀 생산성 및 문서 협업 도구를 만드는 개발자입니다.",
+      "role": "Backend & AI Engineer",
+      "isStartingMember": true,
+      "projectsCount": 1,
+      "totalLikes": 11,
+      "followersCount": 7
+    },
+    {
       "id": "b1b8571a-4858-4d23-b835-d187d664bfd1",
       "name": "장현",
       "handle": "1123janghyun4",
@@ -21,14 +107,118 @@
       "isStartingMember": true,
       "socials": {},
       "followersCount": 0
+    },
+    {
+      "id": "builder-janghyun1",
+      "name": "장현",
+      "handle": "1123janghyun1",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=1123janghyun1",
+      "role": "Founder & Builder",
+      "bio": "zemix 메이커",
+      "followersCount": 0
     }
   ],
   "follows": {
     "08f75bdf-ba36-4ce2-a78d-ac289cb1d5c3": []
   },
-  "projects": [],
-  "communityPosts": [],
-  "feedbacks": [],
-  "comments": [],
+  "projectLikes": {
+    "test-proj-1792536087977": [
+      "user-1"
+    ],
+    "proj-1792537542403": [
+      "user-alpha"
+    ]
+  },
+  "communityLikes": {
+    "test-post-1792536089962": [
+      "user-1"
+    ],
+    "post-1792537558030": [
+      "user-beta"
+    ]
+  },
+  "projects": [
+    {
+      "title": "Zemix AI Assistant",
+      "tagline": "메이커를 위한 완벽한 쇼케이스 플랫폼",
+      "description": "Supabase 연동 완료 후 자동 생성된 실전 테스트 프로젝트입니다.",
+      "websiteUrl": "https://zemix.vercel.app",
+      "githubUrl": "https://github.com/example/zemix",
+      "tags": [
+        "AI",
+        "Productivity",
+        "Next.js"
+      ],
+      "author": {
+        "id": "builder-janghyun1",
+        "name": "장현",
+        "handle": "1123janghyun1",
+        "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=1123janghyun1"
+      },
+      "id": "proj-1792537542403",
+      "likesCount": 1,
+      "viewsCount": 1,
+      "commentsCount": 1,
+      "feedbacksCount": 1,
+      "followersCount": 0,
+      "insights": {
+        "viewsTotal": 1,
+        "likesTotal": 0,
+        "outboundClicks": 0,
+        "viewsByDay": [],
+        "referrers": [],
+        "trendingRank": 1,
+        "rankChange": 0
+      },
+      "createdAt": "2026-10-20T23:05:42.403Z",
+      "updatedAt": "2026-10-20T23:05:42.403Z"
+    }
+  ],
+  "communityPosts": [
+    {
+      "title": "Zemix에 오신 것을 환영합니다!",
+      "content": "모든 데이터가 Supabase와 완벽하게 실시간 동기화됩니다.",
+      "category": "General",
+      "tags": [
+        "Zemix",
+        "Notice"
+      ],
+      "author": {
+        "id": "builder-janghyun1",
+        "name": "장현",
+        "handle": "1123janghyun1",
+        "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=1123janghyun1"
+      },
+      "id": "post-1792537558030",
+      "createdAt": "2026-10-20T23:05:58.030Z",
+      "likesCount": 1,
+      "commentsCount": 0
+    }
+  ],
+  "feedbacks": [
+    {
+      "projectId": "proj-1792537542403",
+      "userId": "user-gamma",
+      "userName": "테스터",
+      "type": "idea",
+      "title": "다크모드 지원 아이디어",
+      "description": "다크모드가 있으면 좋겠습니다.",
+      "id": "fb-1792537575950",
+      "createdAt": "2026-10-20T23:06:15.950Z",
+      "upvotes": 1,
+      "commentsCount": 0
+    }
+  ],
+  "comments": [
+    {
+      "projectId": "proj-1792537542403",
+      "userId": "user-delta",
+      "userName": "응원러",
+      "content": "프로젝트 멋집니다! 응원해요.",
+      "id": "cm-1792537576358",
+      "createdAt": "2026-10-20T23:06:16.358Z",
+      "likes": 0
+    }
+  ],
   "timeline": []
 }

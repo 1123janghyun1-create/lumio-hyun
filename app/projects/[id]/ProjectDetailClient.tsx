@@ -25,13 +25,16 @@ import {
 } from "lucide-react";
 import { GithubIcon } from "@/components/Icons";
 import {
+  getProjects,
   getProjectById,
   toggleProjectLike,
   recordProjectView,
   getFeedbacksByProject,
+  fetchSharedFeedbacks,
   addFeedback,
   toggleFeedbackUpvote,
   getCommentsByProject,
+  fetchSharedComments,
   addComment,
   getTimelineByProject,
   addTimelineUpdate,
@@ -52,13 +55,15 @@ type TabType = "overview" | "feedback" | "comments" | "timeline" | "insights" | 
 
 export default function ProjectDetailClient({
   projectId,
+  initialProject,
 }: {
   projectId: string;
+  initialProject?: Project;
 }) {
   const { user } = useAuth();
   const router = useRouter();
 
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<Project | null>(initialProject || null);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [comments, setComments] = useState<CommentItem[]>([]);
@@ -102,17 +107,17 @@ export default function ProjectDetailClient({
       setIsFollowingMaker(isBuilderFollowed(proj.author?.id));
     }
 
-    // Always fetch latest shared project from server so any device can load it
+    // Always fetch latest shared project, feedbacks, comments from server so any device can load it
     fetchSharedProjects().then((allProjects) => {
       const found = allProjects.find((p) => p.id === projectId);
       if (found) {
         setProject(found);
-        setFeedbacks(getFeedbacksByProject(projectId));
-        setComments(getCommentsByProject(projectId));
-        setTimeline(getTimelineByProject(projectId));
         setIsFollowingMaker(isBuilderFollowed(found.author?.id));
       }
     });
+
+    fetchSharedFeedbacks(projectId).then(setFeedbacks);
+    fetchSharedComments(projectId).then(setComments);
 
     const handleSync = () => {
       const p = getProjectById(projectId);
@@ -150,7 +155,7 @@ export default function ProjectDetailClient({
       }
       return;
     }
-    const result = toggleProjectLike(project.id);
+    const result = toggleProjectLike(project.id, user.id);
     setProject((prev) => (prev ? { ...prev, likesCount: result.likesCount, isLiked: result.isLiked } : null));
   };
 
@@ -820,109 +825,163 @@ export default function ProjectDetailClient({
           )}
 
           {/* TAB 5: INSIGHTS */}
-          {activeTab === "insights" && (
-            <div className="space-y-6 animate-fade-in">
-              <div>
-                <h3 className="text-base font-semibold text-foreground">프로젝트 인사이트 분석</h3>
-                <p className="text-xs text-muted">
-                  조회수, 좋아요, 트렌딩 순위 변화와 외부 트래픽 전환(/go/id)을 모니터링합니다.
-                </p>
-              </div>
+          {activeTab === "insights" && (() => {
+            const totalViews = project.viewsCount || 0;
+            const outboundClicks = project.insights?.outboundClicks || 0;
+            const allProjects = getProjects();
+            const sortedProjects = [...allProjects].sort(
+              (a, b) => (b.likesCount * 2 + b.viewsCount) - (a.likesCount * 2 + a.viewsCount)
+            );
+            const rankIndex = sortedProjects.findIndex((p) => p.id === project.id);
+            const trendingRank = rankIndex >= 0 ? rankIndex + 1 : 1;
 
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="rounded-card border border-border bg-surface p-4">
-                  <p className="text-xs font-medium text-muted">총 조회수</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
-                    {project.insights?.viewsTotal || project.viewsCount}
-                  </p>
-                </div>
-                <div className="rounded-card border border-border bg-surface p-4">
-                  <p className="text-xs font-medium text-muted">총 좋아요</p>
-                  <p className="text-2xl font-bold text-primary mt-1">
-                    {project.likesCount}
-                  </p>
-                </div>
-                <div className="rounded-card border border-border bg-surface p-4">
-                  <p className="text-xs font-medium text-muted">웹사이트 전환 클릭</p>
-                  <p className="text-2xl font-bold text-success mt-1">
-                    {project.insights?.outboundClicks || 84}
-                  </p>
-                </div>
-                <div className="rounded-card border border-border bg-surface p-4">
-                  <p className="text-xs font-medium text-muted">트렌딩 랭킹</p>
-                  <p className="text-2xl font-bold text-warning mt-1">
-                    #{project.insights?.trendingRank || 2}
-                  </p>
-                </div>
-              </div>
+            // Generate last 7 days dynamically ending today
+            const last7Days = Array.from({ length: 7 }, (_, i) => {
+              const d = new Date();
+              d.setDate(d.getDate() - (6 - i));
+              const month = String(d.getMonth() + 1).padStart(2, "0");
+              const day = String(d.getDate()).padStart(2, "0");
+              return {
+                date: `${month}/${day}`,
+                views: i === 6 ? totalViews : 0,
+              };
+            });
+            const chartBars = (project.insights?.viewsByDay && project.insights.viewsByDay.length > 0)
+              ? project.insights.viewsByDay
+              : last7Days;
 
-              {/* Views Chart Bar Visualization */}
-              <div className="rounded-card border border-border bg-surface p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    최근 7일간 일일 조회수 추이
+            const maxBarViews = Math.max(...chartBars.map((b) => b.views), 1);
+
+            const hasCustomReferrers = project.insights?.referrers && project.insights.referrers.length > 0;
+            const referrers = hasCustomReferrers
+              ? project.insights!.referrers
+              : totalViews === 0
+              ? [
+                  { source: "Zemix 메인 트렌딩 및 탐색", count: 0, percentage: 0 },
+                  { source: "직접 접속 및 공유 링크", count: 0, percentage: 0 },
+                  { source: "외부 유입 및 검색", count: 0, percentage: 0 },
+                ]
+              : [
+                  {
+                    source: "Zemix 메인 트렌딩 및 탐색",
+                    count: Math.ceil(totalViews * 0.7),
+                    percentage: Math.round((Math.ceil(totalViews * 0.7) / totalViews) * 100),
+                  },
+                  {
+                    source: "직접 접속 및 공유 링크",
+                    count: Math.max(0, totalViews - Math.ceil(totalViews * 0.7)),
+                    percentage: Math.round((Math.max(0, totalViews - Math.ceil(totalViews * 0.7)) / totalViews) * 100),
+                  },
+                  {
+                    source: "외부 유입 및 검색",
+                    count: 0,
+                    percentage: 0,
+                  },
+                ];
+
+            return (
+              <div className="space-y-6 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground">프로젝트 인사이트 분석</h3>
+                    <p className="text-xs text-muted">
+                      조회수, 좋아요, 트렌딩 순위 변화와 외부 트래픽 전환(/go/id)을 모니터링합니다.
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-[11px] font-medium text-success">
+                    <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+                    실시간 집계 중
+                  </span>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="rounded-card border border-border bg-surface p-4">
+                    <p className="text-xs font-medium text-muted">총 조회수</p>
+                    <p className="text-2xl font-bold text-foreground mt-1">
+                      {totalViews}
+                    </p>
+                  </div>
+                  <div className="rounded-card border border-border bg-surface p-4">
+                    <p className="text-xs font-medium text-muted">총 좋아요</p>
+                    <p className="text-2xl font-bold text-primary mt-1">
+                      {project.likesCount}
+                    </p>
+                  </div>
+                  <div className="rounded-card border border-border bg-surface p-4">
+                    <p className="text-xs font-medium text-muted">웹사이트 전환 클릭</p>
+                    <p className="text-2xl font-bold text-success mt-1">
+                      {outboundClicks}
+                    </p>
+                  </div>
+                  <div className="rounded-card border border-border bg-surface p-4">
+                    <p className="text-xs font-medium text-muted">트렌딩 랭킹</p>
+                    <p className="text-2xl font-bold text-warning mt-1">
+                      #{trendingRank}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Views Chart Bar Visualization */}
+                <div className="rounded-card border border-border bg-surface p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      최근 7일간 일일 조회수 추이
+                    </h4>
+                    <span className="text-xs text-muted">단위: Views</span>
+                  </div>
+                  <div className="flex items-end justify-between gap-2 h-40 pt-4 border-b border-border">
+                    {chartBars.map((bar, i) => {
+                      const heightPercent = bar.views > 0
+                        ? Math.min(100, Math.max(16, Math.round((bar.views / maxBarViews) * 100)))
+                        : 6;
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                          <span className="text-[10px] text-muted opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
+                            {bar.views}
+                          </span>
+                          <div
+                            className={`w-full rounded-t-[4px] transition-all duration-300 ${
+                              bar.views > 0
+                                ? "bg-primary/80 group-hover:bg-primary"
+                                : "bg-border/60 group-hover:bg-border"
+                            }`}
+                            style={{ height: `${heightPercent}%` }}
+                          />
+                          <span className="text-[10px] text-muted-foreground">
+                            {bar.date}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Referrers */}
+                <div className="rounded-card border border-border bg-surface p-6 shadow-sm">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+                    방문자 유입 경로 (Referrers)
                   </h4>
-                  <span className="text-xs text-muted">단위: Views</span>
-                </div>
-                <div className="flex items-end justify-between gap-2 h-40 pt-4 border-b border-border">
-                  {(project.insights?.viewsByDay || [
-                    { date: "10/06", views: 40 },
-                    { date: "10/07", views: 65 },
-                    { date: "10/08", views: 90 },
-                    { date: "10/09", views: 120 },
-                    { date: "10/10", views: 145 },
-                    { date: "10/11", views: 110 },
-                    { date: "10/12", views: 98 },
-                  ]).map((bar, i) => {
-                    const heightPercent = Math.min(100, Math.max(15, (bar.views / 150) * 100));
-                    return (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                        <span className="text-[10px] text-muted opacity-0 group-hover:opacity-100 transition-opacity">
-                          {bar.views}
-                        </span>
-                        <div
-                          className="w-full rounded-t-[4px] bg-primary/80 group-hover:bg-primary transition-all duration-300"
-                          style={{ height: `${heightPercent}%` }}
-                        />
-                        <span className="text-[10px] text-muted-foreground">
-                          {bar.date}
-                        </span>
+                  <div className="space-y-3">
+                    {referrers.map((ref, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="font-medium text-foreground">{ref.source}</span>
+                          <span className="text-muted">{ref.count}회 ({ref.percentage}%)</span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-surface-muted overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full"
+                            style={{ width: `${ref.percentage}%` }}
+                          />
+                        </div>
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
               </div>
-
-              {/* Referrers */}
-              <div className="rounded-card border border-border bg-surface p-6 shadow-sm">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-                  방문자 유입 경로 (Referrers)
-                </h4>
-                <div className="space-y-3">
-                  {(project.insights?.referrers || [
-                    { source: "Zemix 메인 트렌딩", count: 280, percentage: 54 },
-                    { source: "외부 추적 링크 (/go)", count: 120, percentage: 23 },
-                    { source: "소셜 미디어 / 디스코드", count: 75, percentage: 14 },
-                    { source: "기타 / 검색", count: 45, percentage: 9 },
-                  ]).map((ref, idx) => (
-                    <div key={idx} className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="font-medium text-foreground">{ref.source}</span>
-                        <span className="text-muted">{ref.count}회 ({ref.percentage}%)</span>
-                      </div>
-                      <div className="h-1.5 w-full rounded-full bg-surface-muted overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full"
-                          style={{ width: `${ref.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* TAB 6: COLLABORATORS */}
           {activeTab === "collaborators" && (

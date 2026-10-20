@@ -9,10 +9,72 @@ import MobileHeader from "@/components/MobileHeader";
 import MobileNav from "@/components/MobileNav";
 import Footer from "@/components/Footer";
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "https://zemix.app");
+
 export const metadata: Metadata = {
-  title: "zemix — Meet users. Build together.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "zemix — 유저를 만나고, 함께 만드는 사이드 프로젝트",
+    template: "%s | zemix",
+  },
   description:
-    "zemix's official site — launch your project, meet your first users, and grow together, all in one place.",
+    "zemix는 사이드 프로젝트를 런칭하고 초기 유저를 만나며, 피드백과 동료를 구해 함께 성장하는 메이커 커뮤니티 플랫폼입니다.",
+  keywords: [
+    "사이드프로젝트",
+    "메이커",
+    "zemix",
+    "프로덕트런칭",
+    "스타트업",
+    "토이프로젝트",
+    "피드백",
+    "팀원모집",
+  ],
+  authors: [{ name: "zemix" }],
+  creator: "zemix",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    url: "/",
+    title: "zemix — 유저를 만나고, 함께 만드는 사이드 프로젝트",
+    description:
+      "사이드 프로젝트 런칭, 초기 유저 확보, 피드백 및 팀원 구인을 한곳에서. zemix 메이커 플랫폼.",
+    siteName: "zemix",
+    images: [
+      {
+        url: "/icon.svg",
+        width: 512,
+        height: 512,
+        alt: "zemix logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "zemix — 유저를 만나고, 함께 만드는 사이드 프로젝트",
+    description:
+      "사이드 프로젝트 런칭, 초기 유저 확보, 피드백 및 팀원 구인을 한곳에서. zemix 메이커 플랫폼.",
+    images: ["/icon.svg"],
+  },
+  verification: {
+    google: "X7GuELZ3QuhLEU_nkwkIedtsOA_0u22iClaGBMg2cKc",
+  },
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
@@ -28,6 +90,7 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
+        <meta name="google-site-verification" content="X7GuELZ3QuhLEU_nkwkIedtsOA_0u22iClaGBMg2cKc" />
         <link
           rel="stylesheet"
           as="style"

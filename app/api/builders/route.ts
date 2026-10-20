@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSharedBuilders, upsertSharedBuilder, toggleSharedBuilderFollow } from "@/lib/serverStore";
-import { createClient } from "@/lib/supabase/client";
+import { getSupabase } from "@/lib/supabase/db";
 
 export async function GET(req: Request) {
   try {
@@ -13,7 +13,7 @@ export async function GET(req: Request) {
 
     // Also attempt Supabase profiles and follows query if available
     try {
-      const supabase = createClient();
+      const supabase = getSupabase();
       if (supabase) {
         const { data: profiles, error: pError } = await (supabase as any).from("profiles").select("*");
         if (!pError && profiles && profiles.length > 0) {
@@ -98,7 +98,7 @@ export async function PATCH(req: Request) {
     // Sync to Supabase follows table if available
     if (followerId) {
       try {
-        const supabase = createClient();
+        const supabase = getSupabase();
         if (supabase) {
           if (result.isFollowing) {
             await (supabase as any).from("follows").insert({
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
 
     // Sync to Supabase profiles
     try {
-      const supabase = createClient();
+      const supabase = getSupabase();
       if (supabase) {
         await (supabase as any).from("profiles").upsert({
           id: builder.id,
