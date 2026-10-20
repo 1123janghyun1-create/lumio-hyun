@@ -5,6 +5,7 @@ import { createClient } from "./supabase/client";
 
 interface StoreData {
   builders: Builder[];
+  follows?: Record<string, string[]>; // builderId -> array of follower user IDs
   projects: Project[];
   communityPosts: CommunityPost[];
   feedbacks: FeedbackItem[];
@@ -12,38 +13,53 @@ interface StoreData {
   timeline: TimelineUpdate[];
 }
 
-const DATA_DIR = path.join(process.cwd(), "data");
+const IS_VERCEL = process.env.VERCEL === "1" || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+const SEED_FILE = path.join(process.cwd(), "data", "lumio-store.json");
+const DATA_DIR = IS_VERCEL ? path.join("/tmp", "zemix-store") : path.join(process.cwd(), "data");
 const STORE_FILE = path.join(DATA_DIR, "lumio-store.json");
+
+function getEmptyStore(): StoreData {
+  return {
+    builders: [],
+    follows: {},
+    projects: [],
+    communityPosts: [],
+    feedbacks: [],
+    comments: [],
+    timeline: [],
+  };
+}
 
 function ensureStoreFile(): StoreData {
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
+
     if (!fs.existsSync(STORE_FILE)) {
-      const initial: StoreData = {
-        builders: [],
-        projects: [],
-        communityPosts: [],
-        feedbacks: [],
-        comments: [],
-        timeline: [],
-      };
+      let initial: StoreData;
+      if (IS_VERCEL && fs.existsSync(SEED_FILE)) {
+        try {
+          const seedContent = fs.readFileSync(SEED_FILE, "utf-8");
+          initial = JSON.parse(seedContent) as StoreData;
+        } catch {
+          initial = getEmptyStore();
+        }
+      } else {
+        initial = getEmptyStore();
+      }
+      if (!initial.follows) initial.follows = {};
       fs.writeFileSync(STORE_FILE, JSON.stringify(initial, null, 2), "utf-8");
       return initial;
     }
+
     const content = fs.readFileSync(STORE_FILE, "utf-8");
-    return JSON.parse(content) as StoreData;
+    const parsed = JSON.parse(content) as StoreData;
+    if (!parsed.follows) parsed.follows = {};
+    return parsed;
   } catch (err) {
     console.error("Error reading store file:", err);
-    return {
-      builders: [],
-      projects: [],
-      communityPosts: [],
-      feedbacks: [],
-      comments: [],
-      timeline: [],
-    };
+    return getEmptyStore();
   }
 }
 
@@ -53,29 +69,64 @@ function writeStoreFile(data: StoreData): void {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2), "utf-8");
+
+    // In local dev, also keep SEED_FILE updated if it's a different path
+    if (STORE_FILE !== SEED_FILE && !IS_VERCEL && fs.existsSync(path.dirname(SEED_FILE))) {
+      try {
+        fs.writeFileSync(SEED_FILE, JSON.stringify(data, null, 2), "utf-8");
+      } catch {}
+    }
   } catch (err) {
     console.error("Error writing store file:", err);
   }
 }
 
 // ----------------- BUILDERS -----------------
-export function getSharedBuilders(): Builder[] {
+export function getSharedBuilders(currentUserId?: string): Builder[] {
   const store = ensureStoreFile();
-  return store.builders;
+  if (!store.follows) store.follows = {};
+
+  return store.builders.map((b) => {
+    const hasFollowsRecord = Array.isArray(store.follows![b.id]);
+    const followerList = hasFollowsRecord ? store.follows![b.id] : [];
+    const count = hasFollowsRecord ? followerList.length : (b.followersCount ?? 0);
+    const isFollowing = currentUserId ? followerList.includes(currentUserId) : false;
+
+    return {
+      ...b,
+      followersCount: count,
+      isFollowing,
+    };
+  });
 }
 
 export function upsertSharedBuilder(builder: Builder): Builder {
   const store = ensureStoreFile();
-  const existingIndex = store.builders.findIndex((b) => b.id === builder.id || (b.handle && b.handle === builder.handle));
+  if (!store.follows) store.follows = {};
+
+  const existingIndex = store.builders.findIndex((b) => b.id === builder.id);
+  const hasFollowsRecord = Array.isArray(store.follows[builder.id]);
+  const realFollowersCount = hasFollowsRecord
+    ? store.follows[builder.id].length
+    : (existingIndex >= 0 ? (store.builders[existingIndex].followersCount ?? 0) : (builder.followersCount ?? 0));
+
+  let savedBuilder: Builder;
+
   if (existingIndex >= 0) {
     const existing = store.builders[existingIndex];
-    store.builders[existingIndex] = {
+    savedBuilder = {
       ...existing,
       ...builder,
-      followersCount: builder.followersCount !== undefined ? builder.followersCount : (existing.followersCount ?? 0),
+      id: existing.id,
+      followersCount: realFollowersCount,
     };
+    store.builders[existingIndex] = savedBuilder;
   } else {
-    store.builders = [{ ...builder, followersCount: builder.followersCount ?? 0 }, ...store.builders];
+    savedBuilder = {
+      ...builder,
+      followersCount: realFollowersCount,
+    };
+    store.builders.push(savedBuilder);
   }
 
   // Also update projects author info if author matches
@@ -98,19 +149,52 @@ export function upsertSharedBuilder(builder: Builder): Builder {
   });
 
   writeStoreFile(store);
-  return builder;
+  return savedBuilder;
 }
 
-export function toggleSharedBuilderFollow(builderId: string, delta: number): { followersCount: number } {
+export function toggleSharedBuilderFollow(
+  builderId: string,
+  followerId: string
+): { isFollowing: boolean; followersCount: number } {
   const store = ensureStoreFile();
-  const builder = store.builders.find((b) => b.id === builderId);
-  let count = 0;
-  if (builder) {
-    builder.followersCount = Math.max(0, (builder.followersCount || 0) + delta);
-    count = builder.followersCount;
-    writeStoreFile(store);
+  if (!store.follows) store.follows = {};
+
+  if (!store.follows[builderId]) {
+    // If builder exists and has positive followersCount, seed if empty
+    const existingBuilder = store.builders.find((b) => b.id === builderId);
+    store.follows[builderId] = [];
   }
-  return { followersCount: count };
+
+  // Cannot follow self
+  if (!followerId || followerId === builderId) {
+    return {
+      isFollowing: false,
+      followersCount: store.follows[builderId].length,
+    };
+  }
+
+  const list = store.follows[builderId];
+  const idx = list.indexOf(followerId);
+  let isFollowing: boolean;
+
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    isFollowing = false;
+  } else {
+    list.push(followerId);
+    isFollowing = true;
+  }
+
+  const count = list.length;
+
+  // Update builder record in store.builders
+  const b = store.builders.find((item) => item.id === builderId);
+  if (b) {
+    b.followersCount = count;
+  }
+
+  writeStoreFile(store);
+  return { isFollowing, followersCount: count };
 }
 
 // ----------------- PROJECTS -----------------

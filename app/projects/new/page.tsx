@@ -278,7 +278,7 @@ export default function NewProjectWizard() {
       coverImage: draft.coverImage || "",
       coverGradient: draft.coverGradient,
       screenshots: draft.screenshots,
-      websiteUrl: draft.website.trim() || "https://zemit.app",
+      websiteUrl: draft.website.trim() || "https://zemix.app",
       demoUrl: draft.demo.trim() || undefined,
       githubUrl: draft.github.trim() || undefined,
       teamChat: draft.teamChatUrl.trim()
@@ -427,7 +427,7 @@ export default function NewProjectWizard() {
                 maxLength={40}
                 value={draft.name}
                 onChange={(e) => updateDraft({ name: e.target.value })}
-                placeholder="예: Zemit, Cozit, PageRivet"
+                placeholder="예: Zemix, Cozit, PageRivet"
                 className="w-full rounded-[var(--radius-control)] border border-border bg-surface px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
             </div>

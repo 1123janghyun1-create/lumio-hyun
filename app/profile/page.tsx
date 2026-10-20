@@ -93,7 +93,7 @@ export default function ProfilePage() {
           프로필 설정 (Profile)
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Zemit 커뮤니티와 프로젝트에 노출되는 빌더 정보를 수정합니다.
+          Zemix 커뮤니티와 프로젝트에 노출되는 빌더 정보를 수정합니다.
         </p>
       </div>
 

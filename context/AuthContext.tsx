@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name: fullName,
       handle: handle,
       avatar: avatar,
-      bio: meta.bio || "zemit 메이커",
+      bio: meta.bio || "zemix 메이커",
       role: meta.role || "Maker",
       isStartingMember: true,
       socials: {

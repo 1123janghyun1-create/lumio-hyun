@@ -38,7 +38,7 @@ export default function Navbar() {
             <HexagonLogo className="h-4.5 w-4.5 text-foreground group-hover:text-primary transition-colors" strokeWidth={2.2} />
           </span>
           <span className="text-[17px] font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
-            zemit
+            zemix
           </span>
         </Link>
 

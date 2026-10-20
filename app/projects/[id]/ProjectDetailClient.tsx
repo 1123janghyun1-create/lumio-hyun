@@ -167,8 +167,8 @@ export default function ProjectDetailClient({
       }
       return;
     }
-    if (!project?.author?.id) return;
-    const res = toggleFollowBuilder(project.author.id);
+    if (!project?.author?.id || user.id === project.author.id) return;
+    const res = toggleFollowBuilder(project.author.id, user.id);
     setIsFollowingMaker(res.isFollowing);
     setProject((prev) =>
       prev
@@ -449,7 +449,7 @@ export default function ProjectDetailClient({
             <div className="ml-auto hidden md:flex items-center gap-2 text-xs text-muted-foreground bg-surface-muted px-3 py-1.5 rounded-control">
               <span>추적 링크:</span>
               <code className="text-primary font-mono text-[11px]">
-                zemit/go/{project.id}
+                zemix/go/{project.id}
               </code>
             </div>
           </div>
@@ -901,7 +901,7 @@ export default function ProjectDetailClient({
                 </h4>
                 <div className="space-y-3">
                   {(project.insights?.referrers || [
-                    { source: "Zemit 메인 트렌딩", count: 280, percentage: 54 },
+                    { source: "Zemix 메인 트렌딩", count: 280, percentage: 54 },
                     { source: "외부 추적 링크 (/go)", count: 120, percentage: 23 },
                     { source: "소셜 미디어 / 디스코드", count: 75, percentage: 14 },
                     { source: "기타 / 검색", count: 45, percentage: 9 },

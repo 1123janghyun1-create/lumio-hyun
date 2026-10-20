@@ -126,30 +126,32 @@ export async function fetchSharedProjects(): Promise<Project[]> {
   return getProjects();
 }
 
-export async function fetchSharedBuilders(): Promise<Builder[]> {
+export async function fetchSharedBuilders(currentUserId?: string): Promise<Builder[]> {
   try {
-    const res = await fetch("/api/builders", { cache: "no-store" });
+    const url = currentUserId
+      ? `/api/builders?currentUserId=${encodeURIComponent(currentUserId)}`
+      : `/api/builders`;
+    const res = await fetch(url, { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
         const followedIds = getStoredItem<string[]>(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, []);
-        const localBuilders = getStoredItem<Builder[]>(STORAGE_KEYS.BUILDERS, []);
-        const localMap = new Map<string, Builder>();
-        localBuilders.forEach((b) => localMap.set(b.id, b));
-
         const merged = data.map((b) => {
-          const isFollowing = followedIds.includes(b.id);
-          const localB = localMap.get(b.id);
-          let count = b.followersCount ?? localB?.followersCount ?? 0;
-          if (isFollowing && count === 0) {
-            count = 1;
-          }
+          const isFollowing = currentUserId
+            ? (b.isFollowing ?? followedIds.includes(b.id))
+            : followedIds.includes(b.id);
           return {
             ...b,
-            followersCount: count,
+            followersCount: b.followersCount ?? 0,
             isFollowing,
           };
         });
+
+        if (currentUserId) {
+          const serverFollowedIds = merged.filter((b) => b.isFollowing).map((b) => b.id);
+          setStoredItem(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, serverFollowedIds);
+        }
+
         setStoredItem(STORAGE_KEYS.BUILDERS, merged);
         return merged;
       }
@@ -612,7 +614,10 @@ export function upsertBuilder(builder: Builder): void {
   }
 }
 
-export function toggleFollowBuilder(builderId: string): { isFollowing: boolean; followersCount: number } {
+export function toggleFollowBuilder(
+  builderId: string,
+  followerId?: string
+): { isFollowing: boolean; followersCount: number } {
   const followedIds = getStoredItem<string[]>(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, []);
   const isFollowing = followedIds.includes(builderId);
   const nextFollowing = !isFollowing;
@@ -646,8 +651,22 @@ export function toggleFollowBuilder(builderId: string): { isFollowing: boolean; 
     fetch("/api/builders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ builderId, delta }),
-    }).catch((e) => console.warn("Failed to sync follow state:", e));
+      body: JSON.stringify({ builderId, followerId }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && typeof data.followersCount === "number") {
+          const currentBuilders = getStoredItem<Builder[]>(STORAGE_KEYS.BUILDERS, []);
+          const synced = currentBuilders.map((b) =>
+            b.id === builderId
+              ? { ...b, followersCount: data.followersCount, isFollowing: data.isFollowing }
+              : b
+          );
+          setStoredItem(STORAGE_KEYS.BUILDERS, synced);
+          window.dispatchEvent(new CustomEvent("lumio_data_synced"));
+        }
+      })
+      .catch((e) => console.warn("Failed to sync follow state:", e));
   }
 
   return { isFollowing: nextFollowing, followersCount: newFollowersCount };

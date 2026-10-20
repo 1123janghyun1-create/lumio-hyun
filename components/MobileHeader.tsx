@@ -25,7 +25,7 @@ export default function MobileHeader() {
           <HexagonLogo className="h-4 w-4 text-foreground" strokeWidth={2.2} />
         </span>
         <span className="text-[15px] font-bold tracking-tight text-foreground">
-          zemit
+          zemix
         </span>
       </Link>
 

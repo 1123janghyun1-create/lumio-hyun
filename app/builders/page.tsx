@@ -18,21 +18,33 @@ export default function BuildersPage() {
   const [selectedRole, setSelectedRole] = useState("All");
 
   const loadAllBuilders = async () => {
-    // 1. Fetch from shared server API
-    const shared = await fetchSharedBuilders();
+    // 1. Fetch from shared server API with currentUserId
+    const shared = await fetchSharedBuilders(user?.id);
     let currentList = [...shared];
 
     // Ensure currently logged-in user is included and synced
     if (user) {
       const idx = currentList.findIndex((b) => b.id === user.id);
       if (idx >= 0) {
-        const preservedFollowers = currentList[idx].followersCount ?? user.followersCount ?? 0;
-        currentList[idx] = { ...currentList[idx], ...user, followersCount: preservedFollowers };
+        const preservedFollowers = currentList[idx].followersCount ?? 0;
+        currentList[idx] = {
+          ...currentList[idx],
+          ...user,
+          followersCount: preservedFollowers,
+          isFollowing: false,
+        };
       } else {
-        currentList = [{ ...user, followersCount: user.followersCount ?? 0 }, ...currentList];
+        currentList = [{ ...user, followersCount: 0, isFollowing: false }, ...currentList];
+        upsertBuilder(user);
       }
-      upsertBuilder(currentList[idx >= 0 ? idx : 0]);
     }
+
+    // Sort by followers count descending (most followers first)
+    currentList.sort((a, b) => {
+      const diff = (b.followersCount || 0) - (a.followersCount || 0);
+      if (diff !== 0) return diff;
+      return (a.name || "").localeCompare(b.name || "");
+    });
 
     setBuilders(currentList);
 
@@ -47,7 +59,7 @@ export default function BuildersPage() {
             name: p.name || "Maker",
             handle: p.handle || "maker",
             avatar: p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`,
-            bio: p.bio || "zemit 메이커",
+            bio: p.bio || "zemix 메이커",
             role: p.role || "Maker",
             isStartingMember: p.is_starting_member ?? true,
             socials: {
@@ -65,8 +77,8 @@ export default function BuildersPage() {
               map.set(b.id, {
                 ...existing,
                 ...b,
-                followersCount: existing?.followersCount ?? b.followersCount ?? 0,
-                isFollowing: existing?.isFollowing ?? b.isFollowing ?? false,
+                followersCount: existing?.followersCount ?? 0,
+                isFollowing: existing?.isFollowing ?? false,
               });
             });
             if (user) {
@@ -74,12 +86,16 @@ export default function BuildersPage() {
               map.set(user.id, {
                 ...existing,
                 ...user,
-                followersCount: existing?.followersCount ?? user.followersCount ?? 0,
+                followersCount: existing?.followersCount ?? 0,
                 isFollowing: false,
               });
             }
             const merged = Array.from(map.values());
-            merged.forEach((b) => upsertBuilder(b));
+            merged.sort((a, b) => {
+              const diff = (b.followersCount || 0) - (a.followersCount || 0);
+              if (diff !== 0) return diff;
+              return (a.name || "").localeCompare(b.name || "");
+            });
             return merged;
           });
         }
@@ -102,40 +118,55 @@ export default function BuildersPage() {
       }
       return;
     }
-    const result = toggleFollowBuilder(builderId);
+    if (user.id === builderId) {
+      return;
+    }
+    const result = toggleFollowBuilder(builderId, user.id);
     setBuilders((prev) =>
-      prev.map((b) =>
-        b.id === builderId
-          ? {
-              ...b,
-              isFollowing: result.isFollowing,
-              followersCount: result.followersCount,
-            }
-          : b
-      )
+      prev
+        .map((b) =>
+          b.id === builderId
+            ? {
+                ...b,
+                isFollowing: result.isFollowing,
+                followersCount: result.followersCount,
+              }
+            : b
+        )
+        .sort((a, b) => {
+          const diff = (b.followersCount || 0) - (a.followersCount || 0);
+          if (diff !== 0) return diff;
+          return (a.name || "").localeCompare(b.name || "");
+        })
     );
   };
 
   // Dynamically compute roles from actual builders
   const dynamicRoles = ["All", ...Array.from(new Set(builders.map((b) => b.role).filter(Boolean)))];
 
-  const filtered = builders.filter((b) => {
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const match =
-        (b.name && b.name.toLowerCase().includes(q)) ||
-        (b.handle && b.handle.toLowerCase().includes(q)) ||
-        (b.bio && b.bio.toLowerCase().includes(q)) ||
-        (b.role && b.role.toLowerCase().includes(q));
-      if (!match) return false;
-    }
+  const filtered = builders
+    .filter((b) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const match =
+          (b.name && b.name.toLowerCase().includes(q)) ||
+          (b.handle && b.handle.toLowerCase().includes(q)) ||
+          (b.bio && b.bio.toLowerCase().includes(q)) ||
+          (b.role && b.role.toLowerCase().includes(q));
+        if (!match) return false;
+      }
 
-    if (selectedRole !== "All" && b.role !== selectedRole) {
-      return false;
-    }
+      if (selectedRole !== "All" && b.role !== selectedRole) {
+        return false;
+      }
 
-    return true;
-  });
+      return true;
+    })
+    .sort((a, b) => {
+      const diff = (b.followersCount || 0) - (a.followersCount || 0);
+      if (diff !== 0) return diff;
+      return (a.name || "").localeCompare(b.name || "");
+    });
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8 animate-fade-in">
@@ -144,7 +175,7 @@ export default function BuildersPage() {
           빌더들 (Builders)
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Zemit에서 사이드 프로젝트를 만들고 키워나가는 메이커들을 만나보세요.
+          Zemix에서 사이드 프로젝트를 만들고 키워나가는 메이커들을 만나보세요.
         </p>
       </div>
 
@@ -232,17 +263,26 @@ export default function BuildersPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleFollow(builder.id)}
-                    className={`flex-1 rounded-control py-2 text-xs font-semibold transition-colors cursor-pointer ${
-                      builder.isFollowing
-                        ? "bg-surface-muted text-muted hover:text-foreground border border-border"
-                        : "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm"
-                    }`}
-                  >
-                    {builder.isFollowing ? "팔로잉 중" : "+ 팔로우"}
-                  </button>
+                  {user && user.id === builder.id ? (
+                    <Link
+                      href="/profile"
+                      className="flex-1 rounded-control py-2 text-xs font-semibold text-center transition-colors border border-border bg-surface-muted text-muted hover:text-foreground"
+                    >
+                      내 프로필 설정
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleFollow(builder.id)}
+                      className={`flex-1 rounded-control py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                        builder.isFollowing
+                          ? "bg-surface-muted text-muted hover:text-foreground border border-border"
+                          : "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm"
+                      }`}
+                    >
+                      {builder.isFollowing ? "팔로잉 중" : "+ 팔로우"}
+                    </button>
+                  )}
 
                   {builder.socials?.github && (
                     <a

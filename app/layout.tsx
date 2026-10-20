@@ -10,9 +10,9 @@ import MobileNav from "@/components/MobileNav";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "zemit — Meet users. Build together.",
+  title: "zemix — Meet users. Build together.",
   description:
-    "zemit's official site — launch your project, meet your first users, and grow together, all in one place.",
+    "zemix's official site — launch your project, meet your first users, and grow together, all in one place.",
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
