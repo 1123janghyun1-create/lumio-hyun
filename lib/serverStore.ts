@@ -69,6 +69,11 @@ function writeStoreFile(data: StoreData): void {
 }
 
 // ----------------- BUILDERS -----------------
+export function getSharedFollows(): Record<string, string[]> {
+  const store = ensureStoreFile();
+  return store.follows || {};
+}
+
 export function getSharedBuilders(currentUserId?: string): Builder[] {
   const store = ensureStoreFile();
   if (!store.follows) store.follows = {};
@@ -141,15 +146,16 @@ export function upsertSharedBuilder(builder: Builder): Builder {
 
 export function toggleSharedBuilderFollow(
   builderId: string,
-  followerId: string
-): { isFollowing: boolean; followersCount: number } {
+  followerId: string,
+  seedFollowerIds?: string[]
+): { isFollowing: boolean; followersCount: number; followerIds: string[] } {
   const store = ensureStoreFile();
   if (!store.follows) store.follows = {};
 
   if (!store.follows[builderId]) {
-    // If builder exists and has positive followersCount, seed if empty
-    const existingBuilder = store.builders.find((b) => b.id === builderId);
-    store.follows[builderId] = [];
+    store.follows[builderId] = Array.isArray(seedFollowerIds) ? [...seedFollowerIds] : [];
+  } else if (Array.isArray(seedFollowerIds) && seedFollowerIds.length > 0) {
+    store.follows[builderId] = Array.from(new Set([...store.follows[builderId], ...seedFollowerIds]));
   }
 
   // Cannot follow self
@@ -157,6 +163,7 @@ export function toggleSharedBuilderFollow(
     return {
       isFollowing: false,
       followersCount: store.follows[builderId].length,
+      followerIds: store.follows[builderId],
     };
   }
 
@@ -181,18 +188,38 @@ export function toggleSharedBuilderFollow(
   }
 
   writeStoreFile(store);
-  return { isFollowing, followersCount: count };
+  return { isFollowing, followersCount: count, followerIds: list };
 }
 
 // ----------------- PROJECTS -----------------
-export function getSharedProjects(): Project[] {
+export function getSharedProjects(currentUserId?: string): Project[] {
   const store = ensureStoreFile();
-  return store.projects;
+  if (!store.projectLikes) store.projectLikes = {};
+  return store.projects.map((p) => {
+    const list = store.projectLikes![p.id] || [];
+    const isLiked = currentUserId ? list.includes(currentUserId) : false;
+    const likesCount = Math.max(list.length, p.likesCount || 0);
+    return {
+      ...p,
+      isLiked,
+      likesCount,
+    };
+  });
 }
 
-export function getSharedProjectById(id: string): Project | undefined {
+export function getSharedProjectById(id: string, currentUserId?: string): Project | undefined {
   const store = ensureStoreFile();
-  return store.projects.find((p) => p.id === id);
+  if (!store.projectLikes) store.projectLikes = {};
+  const found = store.projects.find((p) => p.id === id);
+  if (!found) return undefined;
+  const list = store.projectLikes[id] || [];
+  const isLiked = currentUserId ? list.includes(currentUserId) : false;
+  const likesCount = Math.max(list.length, found.likesCount || 0);
+  return {
+    ...found,
+    isLiked,
+    likesCount,
+  };
 }
 
 export function saveSharedProject(projectData: any): Project {
@@ -301,30 +328,30 @@ export function recordSharedProjectOutboundClick(id: string): void {
   writeStoreFile(store);
 }
 
-export function toggleSharedProjectLike(projectId: string, userId?: string): { isLiked: boolean; likesCount: number } {
+export function toggleSharedProjectLike(
+  projectId: string,
+  userId?: string,
+  seedLikedIds?: string[]
+): { isLiked: boolean; likesCount: number; likedUserIds: string[] } {
   const store = ensureStoreFile();
   if (!store.projectLikes) store.projectLikes = {};
-  if (!store.projectLikes[projectId]) store.projectLikes[projectId] = [];
+  if (!store.projectLikes[projectId]) {
+    store.projectLikes[projectId] = Array.isArray(seedLikedIds) ? [...seedLikedIds] : [];
+  } else if (Array.isArray(seedLikedIds) && seedLikedIds.length > 0) {
+    store.projectLikes[projectId] = Array.from(new Set([...store.projectLikes[projectId], ...seedLikedIds]));
+  }
 
   const list = store.projectLikes[projectId];
   let isLiked = false;
 
-  if (userId) {
-    const idx = list.indexOf(userId);
-    if (idx >= 0) {
-      list.splice(idx, 1);
-      isLiked = false;
-    } else {
-      list.push(userId);
-      isLiked = true;
-    }
+  const targetId = userId || "anonymous";
+  const idx = list.indexOf(targetId);
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    isLiked = false;
   } else {
-    isLiked = list.length === 0;
-    if (isLiked) {
-      list.push("anon-" + Date.now());
-    } else {
-      list.pop();
-    }
+    list.push(targetId);
+    isLiked = true;
   }
 
   const count = list.length;
@@ -332,13 +359,23 @@ export function toggleSharedProjectLike(projectId: string, userId?: string): { i
     p.id === projectId ? { ...p, likesCount: count } : p
   );
   writeStoreFile(store);
-  return { isLiked, likesCount: count };
+  return { isLiked, likesCount: count, likedUserIds: list };
 }
 
 // ----------------- COMMUNITY POSTS -----------------
-export function getSharedCommunityPosts(): CommunityPost[] {
+export function getSharedCommunityPosts(currentUserId?: string): CommunityPost[] {
   const store = ensureStoreFile();
-  return store.communityPosts;
+  if (!store.communityLikes) store.communityLikes = {};
+  return store.communityPosts.map((p) => {
+    const list = store.communityLikes![p.id] || [];
+    const isLiked = currentUserId ? list.includes(currentUserId) : false;
+    const likesCount = Math.max(list.length, p.likesCount || 0);
+    return {
+      ...p,
+      isLiked,
+      likesCount,
+    };
+  });
 }
 
 export function addSharedCommunityPost(post: any): CommunityPost {
@@ -375,30 +412,30 @@ export function deleteSharedCommunityPost(id: string): boolean {
   return true;
 }
 
-export function toggleSharedCommunityLike(postId: string, userId?: string): { isLiked: boolean; likesCount: number } {
+export function toggleSharedCommunityLike(
+  postId: string,
+  userId?: string,
+  seedLikedIds?: string[]
+): { isLiked: boolean; likesCount: number; likedUserIds: string[] } {
   const store = ensureStoreFile();
   if (!store.communityLikes) store.communityLikes = {};
-  if (!store.communityLikes[postId]) store.communityLikes[postId] = [];
+  if (!store.communityLikes[postId]) {
+    store.communityLikes[postId] = Array.isArray(seedLikedIds) ? [...seedLikedIds] : [];
+  } else if (Array.isArray(seedLikedIds) && seedLikedIds.length > 0) {
+    store.communityLikes[postId] = Array.from(new Set([...store.communityLikes[postId], ...seedLikedIds]));
+  }
 
   const list = store.communityLikes[postId];
   let isLiked = false;
 
-  if (userId) {
-    const idx = list.indexOf(userId);
-    if (idx >= 0) {
-      list.splice(idx, 1);
-      isLiked = false;
-    } else {
-      list.push(userId);
-      isLiked = true;
-    }
+  const targetId = userId || "anonymous";
+  const idx = list.indexOf(targetId);
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    isLiked = false;
   } else {
-    isLiked = list.length === 0;
-    if (isLiked) {
-      list.push("anon-" + Date.now());
-    } else {
-      list.pop();
-    }
+    list.push(targetId);
+    isLiked = true;
   }
 
   const count = list.length;
@@ -406,7 +443,7 @@ export function toggleSharedCommunityLike(postId: string, userId?: string): { is
     p.id === postId ? { ...p, likesCount: count } : p
   );
   writeStoreFile(store);
-  return { isLiked, likesCount: count };
+  return { isLiked, likesCount: count, likedUserIds: list };
 }
 
 // ----------------- FEEDBACKS -----------------

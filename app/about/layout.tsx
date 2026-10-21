@@ -35,7 +35,13 @@ export const metadata: Metadata = {
     siteName: "zemix",
     images: [
       {
-        url: "/icon.svg",
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "메이커 장현 - zemix",
+      },
+      {
+        url: "/icon.png",
         width: 512,
         height: 512,
         alt: "메이커 장현 - zemix",
@@ -47,7 +53,7 @@ export const metadata: Metadata = {
     title: "개발자 소개 — 메이커 장현 | zemix",
     description:
       "아이디어를 실제 제품으로 빠르게 빌드하는 메이커 장현입니다. zemix, Buildit, SchoolEcho 개발 및 WCRC 대상 수상.",
-    images: ["/icon.svg"],
+    images: ["/og-image.png"],
   },
 };
 

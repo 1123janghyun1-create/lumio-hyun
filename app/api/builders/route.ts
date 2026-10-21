@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSharedBuilders, upsertSharedBuilder, toggleSharedBuilderFollow } from "@/lib/serverStore";
+import { getSharedBuilders, getSharedFollows, upsertSharedBuilder, toggleSharedBuilderFollow } from "@/lib/serverStore";
 import { getSupabase } from "@/lib/supabase/db";
 
 export async function GET(req: Request) {
@@ -47,12 +47,22 @@ export async function GET(req: Request) {
             }
           } catch {}
 
+          const storeFollows = getSharedFollows();
+
           builders = realProfiles.map((p: any) => {
             const forThis = supabaseFollows.filter((f) => f.following_id === p.id);
-            const followersCount = forThis.length > 0 ? forThis.length : (p.followers_count || 0);
-            const isFollowing = currentUserId
+            const storeFollowerList = Array.isArray(storeFollows[p.id]) ? storeFollows[p.id] : [];
+            const remoteIsFollowing = currentUserId
               ? forThis.some((f) => f.follower_id === currentUserId)
               : false;
+            const isFollowing = currentUserId
+              ? (remoteIsFollowing || storeFollowerList.includes(currentUserId))
+              : false;
+            const followersCount = Math.max(
+              forThis.length,
+              storeFollowerList.length,
+              p.followers_count || 0
+            );
             const stats = projectStats.get(p.id) || { projectsCount: 0, totalLikes: 0 };
 
             return {
@@ -111,13 +121,35 @@ export async function PATCH(req: Request) {
 
     // Toggle follow by followerId
     const targetFollowerId = followerId || "anonymous_user";
-    const result = toggleSharedBuilderFollow(builderId, targetFollowerId);
 
-    // Sync to Supabase follows table if available
-    if (followerId) {
+    // 1. Fetch remote follows if table exists
+    const supabase = getSupabase();
+    let remoteFollowerIds: string[] = [];
+    if (supabase) {
       try {
-        const supabase = getSupabase();
-        if (supabase) {
+        const { data: fData } = await (supabase as any)
+          .from("follows")
+          .select("follower_id")
+          .eq("following_id", builderId);
+        if (Array.isArray(fData)) {
+          remoteFollowerIds = fData.map((f: any) => f.follower_id);
+        }
+      } catch {}
+    }
+
+    const result = toggleSharedBuilderFollow(builderId, targetFollowerId, remoteFollowerIds);
+
+    // Sync to Supabase
+    if (supabase) {
+      try {
+        // Update followers_count in profiles
+        await (supabase as any)
+          .from("profiles")
+          .update({ followers_count: result.followersCount })
+          .eq("id", builderId);
+
+        // Also sync to follows table if available
+        if (followerId) {
           if (result.isFollowing) {
             await (supabase as any).from("follows").insert({
               follower_id: followerId,
@@ -130,7 +162,9 @@ export async function PATCH(req: Request) {
             });
           }
         }
-      } catch {}
+      } catch (e) {
+        console.warn("Supabase follow sync warning:", e);
+      }
     }
 
     return NextResponse.json(result);

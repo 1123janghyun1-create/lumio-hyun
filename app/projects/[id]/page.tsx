@@ -53,7 +53,7 @@ export async function generateMetadata({
     project.tagline ||
     `${project.title} - zemix에서 확인하고 피드백을 남겨보세요.`;
   const pageUrl = `${SITE_URL}/projects/${project.id}`;
-  const image = project.coverImage || project.logo || `${SITE_URL}/icon.svg`;
+  const image = project.coverImage || project.logo || `${SITE_URL}/icon.png`;
 
   return {
     title,

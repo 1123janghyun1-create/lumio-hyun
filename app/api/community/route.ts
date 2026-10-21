@@ -8,8 +8,11 @@ import {
 import { getSupabase, postToRow, rowToPost } from "@/lib/supabase/db";
 import { CommunityPost } from "@/lib/types";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const currentUserId = searchParams.get("currentUserId") || undefined;
+
     // 1. Try Supabase first
     const supabase = getSupabase();
     if (supabase) {
@@ -20,11 +23,25 @@ export async function GET() {
           .order("created_at", { ascending: false });
 
         if (!error && Array.isArray(data) && data.length > 0) {
-          const remotePosts = data.map(rowToPost);
-          const local = getSharedCommunityPosts();
+          const localPosts = getSharedCommunityPosts(currentUserId);
+          const localMap = new Map<string, CommunityPost>();
+          localPosts.forEach((lp) => localMap.set(lp.id, lp));
+
+          const remotePosts = data.map((row: any) => {
+            const p = rowToPost(row);
+            const localPost = localMap.get(p.id);
+            const isLiked = localPost?.isLiked ?? false;
+            const likesCount = Math.max(row.likes_count || 0, localPost?.likesCount || 0);
+            return {
+              ...p,
+              isLiked,
+              likesCount,
+            };
+          });
+
           const map = new Map<string, CommunityPost>();
           remotePosts.forEach((p) => map.set(p.id, p));
-          local.forEach((lp) => {
+          localPosts.forEach((lp) => {
             if (!map.has(lp.id)) {
               map.set(lp.id, lp);
             }
@@ -37,7 +54,7 @@ export async function GET() {
     }
 
     // 2. Fallback to local serverStore
-    const posts = getSharedCommunityPosts();
+    const posts = getSharedCommunityPosts(currentUserId);
     return NextResponse.json(posts);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

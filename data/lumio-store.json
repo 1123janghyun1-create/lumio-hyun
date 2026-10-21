@@ -9,8 +9,12 @@
       "followersCount": 0
     }
   ],
-  "follows": {},
-  "projectLikes": {},
+  "follows": {
+    "83b111d7-5535-41ad-bb30-0cd08c2cf04e": []
+  },
+  "projectLikes": {
+    "proj-1792573739868": []
+  },
   "communityLikes": {},
   "projects": [],
   "communityPosts": [],

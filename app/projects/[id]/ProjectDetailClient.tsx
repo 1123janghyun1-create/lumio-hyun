@@ -27,6 +27,7 @@ import { GithubIcon } from "@/components/Icons";
 import {
   getProjects,
   getProjectById,
+  isProjectLiked,
   toggleProjectLike,
   recordProjectView,
   getFeedbacksByProject,
@@ -63,7 +64,21 @@ export default function ProjectDetailClient({
   const { user } = useAuth();
   const router = useRouter();
 
-  const [project, setProject] = useState<Project | null>(initialProject || null);
+  const [project, setProject] = useState<Project | null>(() => {
+    if (initialProject) {
+      if (typeof window !== "undefined") {
+        const local = getProjectById(initialProject.id);
+        if (local) return local;
+        const isLiked = isProjectLiked(initialProject.id);
+        return {
+          ...initialProject,
+          isLiked,
+        };
+      }
+      return initialProject;
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(!initialProject);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
@@ -111,7 +126,7 @@ export default function ProjectDetailClient({
     }
 
     // Always fetch latest shared project, feedbacks, comments from server so any device can load it
-    fetchSharedProjects()
+    fetchSharedProjects(user?.id)
       .then((allProjects) => {
         if (!mounted) return;
         const found = allProjects.find((p) => p.id === projectId);
@@ -128,11 +143,14 @@ export default function ProjectDetailClient({
     fetchSharedComments(projectId).then((c) => mounted && setComments(c));
 
     const handleSync = () => {
-      const p = getProjectById(projectId);
-      if (p) {
-        setProject(p);
-        setIsFollowingMaker(isBuilderFollowed(p.author?.id));
-      }
+      fetchSharedProjects(user?.id).then((allProjects) => {
+        if (!mounted) return;
+        const found = allProjects.find((p) => p.id === projectId);
+        if (found) {
+          setProject(found);
+          setIsFollowingMaker(isBuilderFollowed(found.author?.id));
+        }
+      });
       setFeedbacks(getFeedbacksByProject(projectId));
       setComments(getCommentsByProject(projectId));
       setTimeline(getTimelineByProject(projectId));
@@ -142,7 +160,7 @@ export default function ProjectDetailClient({
       mounted = false;
       window.removeEventListener("lumio_data_synced", handleSync);
     };
-  }, [projectId]);
+  }, [projectId, user?.id]);
 
   if (loading && !project) {
     return (

@@ -13,7 +13,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/projects/", "/explore", "/community", "/builders", "/about"],
+        allow: "/",
         disallow: [
           "/api/",
           "/auth/",
@@ -25,12 +25,12 @@ export default function robots(): MetadataRoute.Robots {
       },
       {
         userAgent: "Googlebot",
-        allow: ["/", "/projects/", "/explore", "/community", "/builders", "/about"],
+        allow: "/",
         disallow: ["/api/", "/auth/"],
       },
       {
         userAgent: "Googlebot-Image",
-        allow: ["/", "/icon.svg", "/icon.png", "/logo.png"],
+        allow: "/",
         disallow: ["/api/"],
       },
     ],

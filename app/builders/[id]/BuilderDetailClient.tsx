@@ -41,8 +41,8 @@ export default function BuilderDetailClient({ builderId }: { builderId: string }
         setLoading(true);
         const [allBuilders, allProjects, allPosts] = await Promise.all([
           fetchSharedBuilders(user?.id),
-          fetchSharedProjects(),
-          fetchSharedCommunityPosts(),
+          fetchSharedProjects(user?.id),
+          fetchSharedCommunityPosts(user?.id),
         ]);
 
         if (!mounted) return;
@@ -104,8 +104,12 @@ export default function BuilderDetailClient({ builderId }: { builderId: string }
     }
 
     loadData();
+
+    const handleSync = () => loadData();
+    window.addEventListener("lumio_data_synced", handleSync);
     return () => {
       mounted = false;
+      window.removeEventListener("lumio_data_synced", handleSync);
     };
   }, [builderId, user]);
 

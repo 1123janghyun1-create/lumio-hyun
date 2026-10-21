@@ -15,6 +15,7 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const viewId = searchParams.get("view");
+    const currentUserId = searchParams.get("currentUserId") || undefined;
     if (viewId) {
       recordSharedProjectView(viewId);
     }
@@ -29,12 +30,37 @@ export async function GET(req: Request) {
           .order("created_at", { ascending: false });
 
         if (!error && Array.isArray(data) && data.length > 0) {
-          const remoteProjects = data.map(rowToProject);
+          const localProjects = getSharedProjects(currentUserId);
+          const localLikesMap = new Map<string, Project>();
+          localProjects.forEach((lp) => localLikesMap.set(lp.id, lp));
+
+          const remoteProjects = data.map((row: any) => {
+            const p = rowToProject(row);
+            const remoteLiked: string[] = Array.isArray(row.insights?.likedUserIds)
+              ? row.insights.likedUserIds
+              : [];
+            const localProj = localLikesMap.get(p.id);
+            const localIsLiked = localProj?.isLiked ?? false;
+            const isLiked = currentUserId
+              ? (remoteLiked.includes(currentUserId) || localIsLiked)
+              : false;
+            const likesCount = Math.max(
+              remoteLiked.length,
+              row.likes_count || 0,
+              localProj?.likesCount || 0
+            );
+
+            return {
+              ...p,
+              isLiked,
+              likesCount,
+            };
+          });
+
           // Resilient merge with local serverStore
-          const local = getSharedProjects();
           const map = new Map<string, Project>();
           remoteProjects.forEach((p) => map.set(p.id, p));
-          local.forEach((lp) => {
+          localProjects.forEach((lp) => {
             if (!map.has(lp.id)) {
               map.set(lp.id, lp);
             }
@@ -47,7 +73,7 @@ export async function GET(req: Request) {
     }
 
     // 2. Fallback to local serverStore
-    const projects = getSharedProjects();
+    const projects = getSharedProjects(currentUserId);
     return NextResponse.json(projects);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -118,18 +144,45 @@ export async function PATCH(req: Request) {
     }
 
     // Default action: toggle like
-    const result = toggleSharedProjectLike(id, userId);
+    const supabase = getSupabase();
+    let existingInsights: any = {};
+    let remoteLikedIds: string[] = [];
 
-    // Sync like count to Supabase
-    try {
-      const supabase = getSupabase();
-      if (supabase) {
+    if (supabase) {
+      try {
+        const { data: existingProj } = await supabase
+          .from("projects")
+          .select("insights, likes_count")
+          .eq("id", id)
+          .maybeSingle();
+        if (existingProj) {
+          existingInsights = existingProj.insights || {};
+          if (Array.isArray(existingInsights.likedUserIds)) {
+            remoteLikedIds = existingInsights.likedUserIds;
+          }
+        }
+      } catch {}
+    }
+
+    const result = toggleSharedProjectLike(id, userId, remoteLikedIds);
+
+    // Sync like count and liked users to Supabase
+    if (supabase) {
+      try {
         await supabase
           .from("projects")
-          .update({ likes_count: result.likesCount })
+          .update({
+            likes_count: result.likesCount,
+            insights: {
+              ...existingInsights,
+              likedUserIds: result.likedUserIds,
+            },
+          })
           .eq("id", id);
+      } catch (err) {
+        console.warn("Supabase project like sync warning:", err);
       }
-    } catch {}
+    }
 
     return NextResponse.json({ success: true, id, ...result });
   } catch (error: any) {

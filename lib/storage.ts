@@ -164,9 +164,12 @@ export async function syncAllWithServer(): Promise<void> {
   }
 }
 
-export async function fetchSharedProjects(): Promise<Project[]> {
+export async function fetchSharedProjects(currentUserId?: string): Promise<Project[]> {
   try {
-    const res = await fetch("/api/projects", { cache: "no-store" });
+    const url = currentUserId
+      ? `/api/projects?currentUserId=${encodeURIComponent(currentUserId)}`
+      : `/api/projects`;
+    const res = await fetch(url, { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -203,18 +206,25 @@ export async function fetchSharedProjects(): Promise<Project[]> {
         setStoredItem(STORAGE_KEYS.PROJECTS, merged);
 
         const likedIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_PROJECT_IDS, []);
+        const serverLikedIds = data.filter((p: any) => p.isLiked).map((p: any) => p.id);
+        const mergedLiked = Array.from(new Set([...likedIds, ...serverLikedIds]));
+        setStoredItem(STORAGE_KEYS.LIKED_PROJECT_IDS, mergedLiked);
+
         const followedIds = getStoredItem<string[]>(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, []);
-        return merged.map((p) => ({
-          ...p,
-          isLiked: likedIds.includes(p.id),
-          likesCount: Math.max(p.likesCount ?? 0, likedIds.includes(p.id) ? 1 : 0),
-          author: p.author
-            ? {
-                ...p.author,
-                isFollowing: followedIds.includes(p.author.id),
-              }
-            : p.author,
-        }));
+        return merged.map((p) => {
+          const isLiked = p.isLiked || mergedLiked.includes(p.id);
+          return {
+            ...p,
+            isLiked,
+            likesCount: Math.max(p.likesCount ?? 0, isLiked ? 1 : 0),
+            author: p.author
+              ? {
+                  ...p.author,
+                  isFollowing: p.author.isFollowing || followedIds.includes(p.author.id),
+                }
+              : p.author,
+          };
+        });
       }
     }
   } catch {}
@@ -231,17 +241,18 @@ export async function fetchSharedBuilders(currentUserId?: string): Promise<Build
       const data = await res.json();
       if (Array.isArray(data)) {
         const followedIds = getStoredItem<string[]>(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, []);
-        const formatted: Builder[] = data.map((b: any) => ({
-          ...b,
-          isFollowing: currentUserId
-            ? (b.isFollowing ?? followedIds.includes(b.id))
-            : followedIds.includes(b.id),
-        }));
+        const serverFollowedIds = data.filter((b: any) => b.isFollowing).map((b: any) => b.id);
+        const mergedFollowed = Array.from(new Set([...followedIds, ...serverFollowedIds]));
+        setStoredItem(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, mergedFollowed);
 
-        if (currentUserId) {
-          const serverFollowedIds = formatted.filter((b) => b.isFollowing).map((b) => b.id);
-          setStoredItem(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, serverFollowedIds);
-        }
+        const formatted: Builder[] = data.map((b: any) => {
+          const isFollowing = b.isFollowing || mergedFollowed.includes(b.id);
+          return {
+            ...b,
+            isFollowing,
+            followersCount: Math.max(b.followersCount ?? 0, isFollowing ? 1 : 0),
+          };
+        });
 
         setStoredItem(STORAGE_KEYS.BUILDERS, formatted);
         return formatted;
@@ -251,9 +262,12 @@ export async function fetchSharedBuilders(currentUserId?: string): Promise<Build
   return getBuilders();
 }
 
-export async function fetchSharedCommunityPosts(): Promise<CommunityPost[]> {
+export async function fetchSharedCommunityPosts(currentUserId?: string): Promise<CommunityPost[]> {
   try {
-    const res = await fetch("/api/community", { cache: "no-store" });
+    const url = currentUserId
+      ? `/api/community?currentUserId=${encodeURIComponent(currentUserId)}`
+      : `/api/community`;
+    const res = await fetch(url, { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -287,11 +301,18 @@ export async function fetchSharedCommunityPosts(): Promise<CommunityPost[]> {
         setStoredItem(STORAGE_KEYS.COMMUNITY, merged);
 
         const likedPostIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_COMMUNITY_IDS, []);
-        return merged.map((p) => ({
-          ...p,
-          isLiked: likedPostIds.includes(p.id),
-          likesCount: Math.max(p.likesCount ?? 0, likedPostIds.includes(p.id) ? 1 : 0),
-        }));
+        const serverLiked = data.filter((p: any) => p.isLiked).map((p: any) => p.id);
+        const mergedLiked = Array.from(new Set([...likedPostIds, ...serverLiked]));
+        setStoredItem(STORAGE_KEYS.LIKED_COMMUNITY_IDS, mergedLiked);
+
+        return merged.map((p) => {
+          const isLiked = p.isLiked || mergedLiked.includes(p.id);
+          return {
+            ...p,
+            isLiked,
+            likesCount: Math.max(p.likesCount ?? 0, isLiked ? 1 : 0),
+          };
+        });
       }
     }
   } catch {}
@@ -337,6 +358,12 @@ export function getProjects(): Project[] {
 export function getProjectById(id: string): Project | undefined {
   const projects = getProjects();
   return projects.find((p) => p.id === id);
+}
+
+export function isProjectLiked(projectId: string): boolean {
+  if (!projectId) return false;
+  const likedIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_PROJECT_IDS, []);
+  return likedIds.includes(projectId);
 }
 
 export function saveProject(projectData: Omit<Project, "id" | "createdAt" | "updatedAt" | "likesCount" | "viewsCount" | "commentsCount" | "feedbacksCount" | "followersCount">): Project {
@@ -428,23 +455,28 @@ export function toggleProjectLike(projectId: string, userId?: string): { likesCo
   const likedIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_PROJECT_IDS, []);
   
   const isCurrentlyLiked = likedIds.includes(projectId);
+  const nextLiked = !isCurrentlyLiked;
   const newLikedIds = isCurrentlyLiked
     ? likedIds.filter((id) => id !== projectId)
     : [...likedIds, projectId];
 
   setStoredItem(STORAGE_KEYS.LIKED_PROJECT_IDS, newLikedIds);
 
-  let newLikesCount = 0;
+  let newLikesCount = nextLiked ? 1 : 0;
+  let found = false;
   const updatedProjects = projects.map((p) => {
     if (p.id === projectId) {
+      found = true;
       const delta = isCurrentlyLiked ? -1 : 1;
-      newLikesCount = Math.max(0, p.likesCount + delta);
-      return { ...p, likesCount: newLikesCount };
+      newLikesCount = Math.max(0, (p.likesCount || 0) + delta);
+      return { ...p, likesCount: newLikesCount, isLiked: nextLiked };
     }
     return p;
   });
 
-  setStoredItem(STORAGE_KEYS.PROJECTS, updatedProjects);
+  if (found) {
+    setStoredItem(STORAGE_KEYS.PROJECTS, updatedProjects);
+  }
 
   // Sync to server
   if (typeof window !== "undefined") {
@@ -452,10 +484,29 @@ export function toggleProjectLike(projectId: string, userId?: string): { likesCo
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: projectId, action: "like", userId }),
-    }).catch(() => {});
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && typeof data.likesCount === "number") {
+          const curProjects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, []);
+          const synced = curProjects.map((p) =>
+            p.id === projectId ? { ...p, likesCount: data.likesCount, isLiked: data.isLiked } : p
+          );
+          setStoredItem(STORAGE_KEYS.PROJECTS, synced);
+
+          const curLiked = getStoredItem<string[]>(STORAGE_KEYS.LIKED_PROJECT_IDS, []);
+          const updatedCurLiked = data.isLiked
+            ? Array.from(new Set([...curLiked, projectId]))
+            : curLiked.filter((id) => id !== projectId);
+          setStoredItem(STORAGE_KEYS.LIKED_PROJECT_IDS, updatedCurLiked);
+
+          window.dispatchEvent(new CustomEvent("lumio_data_synced"));
+        }
+      })
+      .catch(() => {});
   }
 
-  return { likesCount: newLikesCount, isLiked: !isCurrentlyLiked };
+  return { likesCount: newLikesCount, isLiked: nextLiked };
 }
 
 export function recordProjectView(projectId: string): void {
@@ -768,33 +819,57 @@ export function toggleCommunityLike(postId: string, userId?: string): { likesCou
   const likedIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_COMMUNITY_IDS, []);
   
   const isCurrentlyLiked = likedIds.includes(postId);
+  const nextLiked = !isCurrentlyLiked;
   const newLikedIds = isCurrentlyLiked
     ? likedIds.filter((id) => id !== postId)
     : [...likedIds, postId];
 
   setStoredItem(STORAGE_KEYS.LIKED_COMMUNITY_IDS, newLikedIds);
 
-  let newLikesCount = 0;
+  let newLikesCount = nextLiked ? 1 : 0;
+  let found = false;
   const updatedPosts = posts.map((p) => {
     if (p.id === postId) {
+      found = true;
       const delta = isCurrentlyLiked ? -1 : 1;
-      newLikesCount = Math.max(0, p.likesCount + delta);
-      return { ...p, likesCount: newLikesCount };
+      newLikesCount = Math.max(0, (p.likesCount || 0) + delta);
+      return { ...p, likesCount: newLikesCount, isLiked: nextLiked };
     }
     return p;
   });
 
-  setStoredItem(STORAGE_KEYS.COMMUNITY, updatedPosts);
+  if (found) {
+    setStoredItem(STORAGE_KEYS.COMMUNITY, updatedPosts);
+  }
 
   if (typeof window !== "undefined") {
     fetch("/api/community", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: postId, userId }),
-    }).catch(() => {});
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && typeof data.likesCount === "number") {
+          const curPosts = getStoredItem<CommunityPost[]>(STORAGE_KEYS.COMMUNITY, []);
+          const synced = curPosts.map((p) =>
+            p.id === postId ? { ...p, likesCount: data.likesCount, isLiked: data.isLiked } : p
+          );
+          setStoredItem(STORAGE_KEYS.COMMUNITY, synced);
+
+          const curLiked = getStoredItem<string[]>(STORAGE_KEYS.LIKED_COMMUNITY_IDS, []);
+          const updatedCurLiked = data.isLiked
+            ? Array.from(new Set([...curLiked, postId]))
+            : curLiked.filter((id) => id !== postId);
+          setStoredItem(STORAGE_KEYS.LIKED_COMMUNITY_IDS, updatedCurLiked);
+
+          window.dispatchEvent(new CustomEvent("lumio_data_synced"));
+        }
+      })
+      .catch(() => {});
   }
 
-  return { likesCount: newLikesCount, isLiked: !isCurrentlyLiked };
+  return { likesCount: newLikesCount, isLiked: nextLiked };
 }
 
 export function addCommunityPost(post: Omit<CommunityPost, "id" | "createdAt" | "likesCount" | "commentsCount">): CommunityPost {
@@ -975,6 +1050,13 @@ export function toggleFollowBuilder(
               : b
           );
           setStoredItem(STORAGE_KEYS.BUILDERS, synced);
+
+          const curFollowed = getStoredItem<string[]>(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, []);
+          const updatedCurFollowed = data.isFollowing
+            ? Array.from(new Set([...curFollowed, builderId]))
+            : curFollowed.filter((id) => id !== builderId);
+          setStoredItem(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, updatedCurFollowed);
+
           window.dispatchEvent(new CustomEvent("lumio_data_synced"));
         }
       })
