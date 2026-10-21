@@ -420,8 +420,8 @@ export default function ProjectDetailClient({
     { key: "collaborators", label: "Collaborators" },
   ];
 
-  const stageKey = project.stage || (project.status === "MVP" ? "idea" : project.status === "Beta" ? "beta" : "public");
-  const stageInfo = STAGE_LABELS[stageKey] || STAGE_LABELS["public"];
+  const stageKey = project?.stage || (project?.status === "MVP" ? "idea" : project?.status === "Beta" ? "beta" : "public");
+  const stageInfo = (stageKey && STAGE_LABELS[stageKey]) || STAGE_LABELS["public"];
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8 animate-fade-in">
@@ -562,7 +562,7 @@ export default function ProjectDetailClient({
                 <span className="flex flex-col items-start leading-tight">
                   <span className="text-xs font-semibold text-foreground">Website</span>
                   <span className="text-[11px] font-normal text-muted-foreground">
-                    {project.websiteUrl.replace(/^https?:\/\//, "")}
+                    {String(project.websiteUrl).replace(/^https?:\/\//, "")}
                   </span>
                 </span>
                 <ExternalLink className="h-3 w-3 ml-1 text-muted" />
@@ -580,7 +580,7 @@ export default function ProjectDetailClient({
                 <span className="flex flex-col items-start leading-tight">
                   <span className="text-xs font-semibold text-foreground">Live Demo</span>
                   <span className="text-[11px] font-normal text-muted-foreground">
-                    {project.demoUrl.replace(/^https?:\/\//, "")}
+                    {String(project.demoUrl).replace(/^https?:\/\//, "")}
                   </span>
                 </span>
                 <ExternalLink className="h-3 w-3 ml-1 text-muted" />
@@ -1220,10 +1220,10 @@ export default function ProjectDetailClient({
                 {(project.collaborators || [
                   {
                     id: "collab-main",
-                    name: project.author.name,
+                    name: project.author?.name || "Maker",
                     role: "Project Owner",
-                    avatar: project.author.avatar,
-                    handle: project.author.handle,
+                    avatar: project.author?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=maker",
+                    handle: project.author?.handle || "maker",
                     joinedAt: "2026-10-01",
                   },
                 ]).map((c) => (
@@ -1273,27 +1273,27 @@ export default function ProjectDetailClient({
               Project Maker
             </p>
             <Link
-              href={`/builders/${project.author.id}`}
+              href={`/builders/${project.author?.id || ""}`}
               className="flex items-center gap-3 group hover:opacity-85 transition-opacity"
             >
               <img
-                src={project.author.avatar}
-                alt={project.author.name}
+                src={project.author?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=maker"}
+                alt={project.author?.name || "Maker"}
                 className="h-12 w-12 rounded-full border border-border object-cover group-hover:scale-105 transition-transform"
               />
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                  {project.author.name}
+                  {project.author?.name || "Maker"}
                 </h3>
-                <p className="text-xs text-muted truncate">@{project.author.handle}</p>
+                <p className="text-xs text-muted truncate">@{project.author?.handle || "maker"}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {project.author.role}
+                  {project.author?.role || "Maker"}
                 </p>
               </div>
             </Link>
 
             <p className="mt-3 text-xs text-muted leading-relaxed">
-              {project.author.bio}
+              {project.author?.bio || "zemix 메이커"}
             </p>
 
             <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
@@ -1325,7 +1325,7 @@ export default function ProjectDetailClient({
             <div className="flex justify-between py-1 border-b border-border/50">
               <span className="text-muted">등록일 (Launched)</span>
               <span className="text-foreground">
-                {new Date(project.createdAt).toLocaleDateString()}
+                {project.createdAt ? new Date(project.createdAt).toLocaleDateString("ko-KR") : "-"}
               </span>
             </div>
 

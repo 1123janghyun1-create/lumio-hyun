@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import ProjectDetailClient from "./ProjectDetailClient";
 import { getSharedProjectById } from "@/lib/serverStore";
 import { getSupabase, rowToProject } from "@/lib/supabase/db";
 import { Project } from "@/lib/types";
+
+export const instant = false;
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ||
@@ -140,7 +143,23 @@ export default async function ProjectDetailPage({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       )}
-      <ProjectDetailClient projectId={id} initialProject={project || undefined} />
+      <Suspense
+        fallback={
+          <div className="mx-auto max-w-6xl px-6 py-8 animate-pulse">
+            <div className="h-8 w-48 bg-surface-muted rounded mb-6" />
+            <div className="h-64 bg-surface-muted rounded-card mb-8" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-4">
+                <div className="h-32 bg-surface-muted rounded-card" />
+                <div className="h-48 bg-surface-muted rounded-card" />
+              </div>
+              <div className="h-64 bg-surface-muted rounded-card" />
+            </div>
+          </div>
+        }
+      >
+        <ProjectDetailClient projectId={id} initialProject={project || undefined} />
+      </Suspense>
     </>
   );
 }

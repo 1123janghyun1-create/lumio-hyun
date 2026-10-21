@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import BuilderDetailClient from "./BuilderDetailClient";
 import { getSupabase } from "@/lib/supabase/db";
 
+export const instant = false;
+
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
