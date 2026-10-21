@@ -125,7 +125,14 @@ export default function FeaturedProject({ project }: FeaturedProjectProps) {
               <span>{project.followersCount} followers</span>
             </span>
 
-            <span className="flex min-w-0 items-center gap-1.5">
+            <span
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                router.push(`/builders/${project.author.id}`);
+              }}
+              className="flex min-w-0 items-center gap-1.5 cursor-pointer hover:underline hover:text-white"
+            >
               <img
                 src={project.author.avatar}
                 alt={project.author.name}

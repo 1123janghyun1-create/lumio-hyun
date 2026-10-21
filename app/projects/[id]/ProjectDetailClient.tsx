@@ -64,6 +64,7 @@ export default function ProjectDetailClient({
   const router = useRouter();
 
   const [project, setProject] = useState<Project | null>(initialProject || null);
+  const [loading, setLoading] = useState(!initialProject);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [comments, setComments] = useState<CommentItem[]>([]);
@@ -97,9 +98,11 @@ export default function ProjectDetailClient({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
     const proj = getProjectById(projectId);
     if (proj) {
       setProject(proj);
+      setLoading(false);
       recordProjectView(projectId);
       setFeedbacks(getFeedbacksByProject(projectId));
       setComments(getCommentsByProject(projectId));
@@ -108,16 +111,21 @@ export default function ProjectDetailClient({
     }
 
     // Always fetch latest shared project, feedbacks, comments from server so any device can load it
-    fetchSharedProjects().then((allProjects) => {
-      const found = allProjects.find((p) => p.id === projectId);
-      if (found) {
-        setProject(found);
-        setIsFollowingMaker(isBuilderFollowed(found.author?.id));
-      }
-    });
+    fetchSharedProjects()
+      .then((allProjects) => {
+        if (!mounted) return;
+        const found = allProjects.find((p) => p.id === projectId);
+        if (found) {
+          setProject(found);
+          setIsFollowingMaker(isBuilderFollowed(found.author?.id));
+        }
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
 
-    fetchSharedFeedbacks(projectId).then(setFeedbacks);
-    fetchSharedComments(projectId).then(setComments);
+    fetchSharedFeedbacks(projectId).then((f) => mounted && setFeedbacks(f));
+    fetchSharedComments(projectId).then((c) => mounted && setComments(c));
 
     const handleSync = () => {
       const p = getProjectById(projectId);
@@ -130,8 +138,27 @@ export default function ProjectDetailClient({
       setTimeline(getTimelineByProject(projectId));
     };
     window.addEventListener("lumio_data_synced", handleSync);
-    return () => window.removeEventListener("lumio_data_synced", handleSync);
+    return () => {
+      mounted = false;
+      window.removeEventListener("lumio_data_synced", handleSync);
+    };
   }, [projectId]);
+
+  if (loading && !project) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 animate-pulse">
+        <div className="h-8 w-48 bg-surface-muted rounded mb-6" />
+        <div className="h-64 bg-surface-muted rounded-card mb-8" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-4">
+            <div className="h-32 bg-surface-muted rounded-card" />
+            <div className="h-48 bg-surface-muted rounded-card" />
+          </div>
+          <div className="h-64 bg-surface-muted rounded-card" />
+        </div>
+      </div>
+    );
+  }
 
   if (!project) {
     return (
@@ -140,7 +167,7 @@ export default function ProjectDetailClient({
         <p className="mt-2 text-sm text-muted">삭제되었거나 잘못된 링크입니다.</p>
         <Link
           href="/"
-          className="mt-4 rounded-control bg-primary px-4 py-2 text-sm font-semibold text-white"
+          className="mt-4 rounded-control bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover transition-colors"
         >
           홈으로 돌아가기
         </Link>
@@ -1056,14 +1083,17 @@ export default function ProjectDetailClient({
             <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">
               Project Maker
             </p>
-            <div className="flex items-center gap-3">
+            <Link
+              href={`/builders/${project.author.id}`}
+              className="flex items-center gap-3 group hover:opacity-85 transition-opacity"
+            >
               <img
                 src={project.author.avatar}
                 alt={project.author.name}
-                className="h-12 w-12 rounded-full border border-border object-cover"
+                className="h-12 w-12 rounded-full border border-border object-cover group-hover:scale-105 transition-transform"
               />
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-semibold text-foreground truncate">
+                <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                   {project.author.name}
                 </h3>
                 <p className="text-xs text-muted truncate">@{project.author.handle}</p>
@@ -1071,7 +1101,7 @@ export default function ProjectDetailClient({
                   {project.author.role}
                 </p>
               </div>
-            </div>
+            </Link>
 
             <p className="mt-3 text-xs text-muted leading-relaxed">
               {project.author.bio}

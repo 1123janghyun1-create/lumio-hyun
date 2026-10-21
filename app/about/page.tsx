@@ -14,6 +14,14 @@ import {
   CheckCircle2,
   Share2,
   ChevronDown,
+  Code,
+  Cpu,
+  Database,
+  Award,
+  Terminal,
+  Layers,
+  Bot,
+  ExternalLink,
 } from "lucide-react";
 import { HexagonLogo } from "@/components/Icons";
 
@@ -402,6 +410,167 @@ export default function AboutPage() {
               className="mt-3 rounded-control bg-primary px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover"
             >
               새 프로젝트 등록하기 →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* DEVELOPER INTRO SECTION (SEO & PROFILE) */}
+      <section className="mx-auto max-w-5xl px-6 pt-24">
+        <div className="rounded-[20px] border border-border bg-surface p-8 sm:p-12 shadow-card">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-6 mb-8">
+            <div>
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft text-primary px-3 py-1 text-xs font-bold mb-2">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Founder & Maker</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+                메이커 장현 (Jang Hyun)
+              </h2>
+              <p className="text-xs sm:text-sm text-muted mt-1">
+                아이디어를 실제 제품으로 빠르게 빌드하는 풀스택 메이커 & 개발자
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-border bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground">
+                🚀 Creator of zemix
+              </span>
+            </div>
+          </div>
+
+          {/* Intro Story */}
+          <div className="space-y-4 text-sm leading-relaxed text-foreground/90 mb-10">
+            <p>
+              안녕하세요, <strong>아이디어를 실제 제품으로 빠르게 빌드하는 메이커 장현</strong>입니다. 🚀
+            </p>
+            <p className="text-muted leading-relaxed">
+              사용자에게 실질적인 가치를 주는 서비스를 만드는 것을 좋아하며, 기획부터 개발, 배포까지 전 과정을 직접 다루고 있습니다. 평소에 아이디어가 떠오르면 직접 코딩하고 배포하여 세상에 내놓는 과정을 진심으로 즐깁니다.
+            </p>
+            <p className="text-muted leading-relaxed">
+              학생들을 위한 스마트 스쿨 라이프 어시스턴트 <strong>SchoolEcho</strong>부터 개발자/크리에이터 협업 플랫폼 <strong>Buildit</strong>, 그리고 사이드 프로젝트 메이커 플랫폼 <strong>zemix</strong>까지 다양한 서비스를 직접 기획하고 빌드해 왔습니다. 웹 개발(Vercel, Supabase 등)뿐만 아니라 Google AI Studio, Gemini API를 활용한 AI 접목, 나아가 아두이노 기반 자율주행 로봇(WCRC 경진대회 대상 수상)처럼 소프트웨어와 하드웨어를 넘나드는 메이킹 활동을 이어가고 있습니다.
+            </p>
+          </div>
+
+          {/* Tech Stack & Tools Grid */}
+          <div className="mb-10">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Terminal className="h-4 w-4 text-primary" />
+              <span>🛠 Tech Stack & Tools</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="rounded-[14px] border border-border bg-surface-muted/40 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Code className="h-4 w-4 text-primary shrink-0" />
+                  <h4 className="text-xs font-bold text-foreground">Frontend / Web</h4>
+                </div>
+                <p className="text-xs text-muted leading-relaxed">
+                  Vercel, Netlify, HTML/CSS/JS, React, Next.js 등 최신 웹 생태계 기반 초고속 서비스 구축 및 최적화
+                </p>
+              </div>
+
+              <div className="rounded-[14px] border border-border bg-surface-muted/40 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Bot className="h-4 w-4 text-info shrink-0" />
+                  <h4 className="text-xs font-bold text-foreground">AI Integration</h4>
+                </div>
+                <p className="text-xs text-muted leading-relaxed">
+                  Google AI Studio, Gemini API를 활용한 지능형 AI 서비스 및 자동화 파이프라인 구현 (Ultron WASM 등)
+                </p>
+              </div>
+
+              <div className="rounded-[14px] border border-border bg-surface-muted/40 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Database className="h-4 w-4 text-success shrink-0" />
+                  <h4 className="text-xs font-bold text-foreground">Backend & DB</h4>
+                </div>
+                <p className="text-xs text-muted leading-relaxed">
+                  Supabase (PostgreSQL), Edge Functions, RLS 보안 정책, Git/GitHub 및 GitHub Copilot 협업
+                </p>
+              </div>
+
+              <div className="rounded-[14px] border border-border bg-surface-muted/40 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Cpu className="h-4 w-4 text-warning shrink-0" />
+                  <h4 className="text-xs font-bold text-foreground">Hardware / IoT</h4>
+                </div>
+                <p className="text-xs text-muted leading-relaxed">
+                  아두이노(Arduino) 기반 센서 제어, 자율주행 물류 로봇 시스템 설계 및 펌웨어 프로그래밍
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Projects & Activities Grid */}
+          <div className="mb-8">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Layers className="h-4 w-4 text-primary" />
+              <span>💡 Projects & Activities</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="rounded-[14px] border border-primary/30 bg-primary-soft/10 p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <span>zemix</span>
+                    <span className="rounded-full bg-primary text-white text-[9px] px-1.5 py-0.2">Live</span>
+                  </h4>
+                  <Link href="/" className="text-primary text-[11px] font-semibold hover:underline">
+                    둘러보기 →
+                  </Link>
+                </div>
+                <p className="text-xs text-muted leading-relaxed mt-1">
+                  사이드 프로젝트 메이커들을 위한 런칭, 피드백 수집, 동료 매칭 올인원 커뮤니티 플랫폼
+                </p>
+              </div>
+
+              <div className="rounded-[14px] border border-border bg-surface-muted/40 p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-xs font-bold text-foreground">Buildit</h4>
+                  <span className="text-[10px] text-muted">Platform</span>
+                </div>
+                <p className="text-xs text-muted leading-relaxed mt-1">
+                  개발자와 크리에이터들을 위한 프로젝트 공유 및 인터랙티브 협업 플랫폼 구축
+                </p>
+              </div>
+
+              <div className="rounded-[14px] border border-border bg-surface-muted/40 p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-xs font-bold text-foreground">SchoolEcho</h4>
+                  <span className="text-[10px] text-muted">Assistant</span>
+                </div>
+                <p className="text-xs text-muted leading-relaxed mt-1">
+                  학생들을 위한 급식, 시간표, 커뮤니티를 한곳에 담은 스마트 스쿨 라이프 어시스턴트 서비스
+                </p>
+              </div>
+
+              <div className="rounded-[14px] border border-warning/30 bg-warning-soft/20 p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-xs font-bold text-warning flex items-center gap-1">
+                    <Award className="h-4 w-4" />
+                    <span>WCRC 물류로봇대회 대상 (1위)</span>
+                  </h4>
+                  <span className="rounded-full bg-warning/20 text-warning text-[9px] font-bold px-1.5 py-0.5">2026</span>
+                </div>
+                <p className="text-xs text-foreground/80 leading-relaxed mt-1">
+                  2026년 제2회 월드 물류 로봇 딜리버리 학생 경진대회 중등부 대상(1위) 수상 (아두이노 기반 자율주행 물류 시스템)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Message */}
+          <div className="rounded-[12px] bg-surface-muted p-4 text-xs text-muted leading-relaxed flex items-center justify-between flex-wrap gap-3">
+            <span>
+              언제나 새로운 기술을 탐구하고 재미있는 서비스를 만들어가는 것에 열려 있습니다. 재미있는 프로젝트를 함께 이야기하거나 피드백을 나누는 걸 좋아합니다. 언제든 편하게 소통해 주세요! ✨
+            </span>
+            <Link
+              href="/builders"
+              className="text-primary font-semibold hover:underline shrink-0"
+            >
+              빌더 라운지에서 소통하기 →
             </Link>
           </div>
         </div>

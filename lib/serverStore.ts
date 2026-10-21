@@ -482,10 +482,13 @@ export function addSharedComment(comment: any): CommentItem {
     store.comments = [...store.comments, newItem];
   }
 
-  // Update project commentsCount
+  // Update project / communityPost commentsCount
   const count = store.comments.filter((c) => c.projectId === comment.projectId).length;
   store.projects = store.projects.map((p) =>
     p.id === comment.projectId ? { ...p, commentsCount: count } : p
+  );
+  store.communityPosts = store.communityPosts.map((cp) =>
+    cp.id === comment.projectId ? { ...cp, commentsCount: count } : cp
   );
 
   writeStoreFile(store);
@@ -500,6 +503,9 @@ export function deleteSharedComment(id: string): boolean {
     const count = store.comments.filter((c) => c.projectId === target.projectId).length;
     store.projects = store.projects.map((p) =>
       p.id === target.projectId ? { ...p, commentsCount: count } : p
+    );
+    store.communityPosts = store.communityPosts.map((cp) =>
+      cp.id === target.projectId ? { ...cp, commentsCount: count } : cp
     );
   }
   writeStoreFile(store);

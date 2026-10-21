@@ -68,6 +68,17 @@ export async function POST(req: Request) {
           likes: saved.likes,
           created_at: saved.createdAt,
         });
+
+        // Sync count to community_posts and projects
+        const { count: cCount } = await (supabase as any)
+          .from("comments")
+          .select("*", { count: "exact", head: true })
+          .eq("project_id", saved.projectId);
+
+        if (cCount !== null && cCount !== undefined) {
+          await (supabase as any).from("projects").update({ comments_count: cCount }).eq("id", saved.projectId);
+          await (supabase as any).from("community_posts").update({ comments_count: cCount }).eq("id", saved.projectId);
+        }
       }
     } catch {}
 
@@ -81,9 +92,11 @@ export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     let id = searchParams.get("id");
+    let targetProjectId = searchParams.get("projectId");
     if (!id) {
       const body = await req.json().catch(() => ({}));
       id = body?.id;
+      if (!targetProjectId) targetProjectId = body?.projectId;
     }
     if (!id) {
       return NextResponse.json({ error: "Missing comment id" }, { status: 400 });
@@ -94,6 +107,17 @@ export async function DELETE(req: Request) {
       const supabase = getSupabase();
       if (supabase) {
         await supabase.from("comments").delete().eq("id", id);
+        if (targetProjectId) {
+          const { count: cCount } = await (supabase as any)
+            .from("comments")
+            .select("*", { count: "exact", head: true })
+            .eq("project_id", targetProjectId);
+
+          if (cCount !== null && cCount !== undefined) {
+            await (supabase as any).from("projects").update({ comments_count: cCount }).eq("id", targetProjectId);
+            await (supabase as any).from("community_posts").update({ comments_count: cCount }).eq("id", targetProjectId);
+          }
+        }
       }
     } catch {}
 

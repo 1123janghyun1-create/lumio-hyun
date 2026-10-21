@@ -85,8 +85,15 @@ export default function ProjectCard({ project, onLikeChanged }: ProjectCardProps
             {project.tagline}
           </p>
           <div className="mt-1.5 flex flex-col gap-1 text-xs text-muted">
-            <div className="flex min-w-0 items-center gap-1.5">
-              <span className="min-w-0 truncate">{project.author.name}</span>
+            <div
+              className="flex min-w-0 items-center gap-1.5 cursor-pointer hover:text-foreground"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                router.push(`/builders/${project.author.id}`);
+              }}
+            >
+              <span className="min-w-0 truncate font-medium hover:underline">{project.author.name}</span>
               {project.author.isStartingMember && (
                 <span className="rounded-full border border-border bg-surface-muted px-1.5 py-0.5 text-[9px] font-medium leading-none text-muted">
                   Starting Member
@@ -193,16 +200,25 @@ export default function ProjectCard({ project, onLikeChanged }: ProjectCardProps
 
         {/* Footer info & stats */}
         <div className="mt-auto flex items-center gap-2.5 pt-2 border-t border-border/50">
-          <div className="flex shrink-0">
-            <img
-              src={project.author.avatar}
-              alt={project.author.name}
-              className="h-8 w-8 shrink-0 rounded-full border border-border object-cover"
-            />
+          <div
+            className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              router.push(`/builders/${project.author.id}`);
+            }}
+          >
+            <div className="flex shrink-0">
+              <img
+                src={project.author.avatar}
+                alt={project.author.name}
+                className="h-8 w-8 shrink-0 rounded-full border border-border object-cover"
+              />
+            </div>
+            <span className="min-w-0 flex-1 truncate text-xs font-medium text-muted hover:underline hover:text-foreground">
+              {project.author.name}
+            </span>
           </div>
-          <span className="min-w-0 flex-1 truncate text-xs font-medium text-muted">
-            {project.author.name}
-          </span>
 
           <div className="flex shrink-0 flex-col items-end gap-1">
             {project.author.isStartingMember && (

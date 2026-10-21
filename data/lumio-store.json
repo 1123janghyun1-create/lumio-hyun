@@ -1,5 +1,14 @@
 {
-  "builders": [],
+  "builders": [
+    {
+      "id": "builder-test-user",
+      "name": "홍길동",
+      "handle": "gildong",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=gildong",
+      "role": "Full-stack",
+      "followersCount": 0
+    }
+  ],
   "follows": {},
   "projectLikes": {},
   "communityLikes": {},
