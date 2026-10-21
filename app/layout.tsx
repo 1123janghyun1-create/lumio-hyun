@@ -15,31 +15,39 @@ const SITE_URL =
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
-    : "https://zemix.app");
+    : "https://zemix.vercel.app");
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "zemix — 유저를 만나고, 함께 만드는 사이드 프로젝트",
+    default: "zemix — 사이드 프로젝트 메이커 커뮤니티",
     template: "%s | zemix",
   },
   description:
-    "zemix는 사이드 프로젝트를 런칭하고 초기 유저를 만나며, 피드백과 동료를 구해 함께 성장하는 메이커 커뮤니티 플랫폼입니다.",
+    "zemix는 사이드 프로젝트를 런칭하고 초기 유저를 만나 피드백과 동료를 구하는 메이커 커뮤니티 플랫폼입니다.",
   keywords: [
-    "사이드프로젝트",
-    "메이커",
     "zemix",
-    "프로덕트런칭",
+    "zemix.vercel.app",
+    "사이드 프로젝트",
+    "사이드프로젝트",
+    "메이커 커뮤니티",
     "스타트업",
+    "프로덕트 런칭",
     "토이프로젝트",
     "피드백",
     "팀원모집",
+    "개발자 커뮤니티",
   ],
-  authors: [{ name: "zemix" }],
+  authors: [{ name: "zemix", url: SITE_URL }],
   creator: "zemix",
+  publisher: "zemix",
+  alternates: {
+    canonical: SITE_URL,
+  },
   robots: {
     index: true,
     follow: true,
+    nocache: false,
     googleBot: {
       index: true,
       follow: true,
@@ -51,10 +59,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "ko_KR",
-    url: "/",
-    title: "zemix — 유저를 만나고, 함께 만드는 사이드 프로젝트",
-    description:
-      "사이드 프로젝트 런칭, 초기 유저 확보, 피드백 및 팀원 구인을 한곳에서. zemix 메이커 플랫폼.",
+    url: SITE_URL,
+    title: "zemix — 사이드 프로젝트 메이커 커뮤니티",
+    description: "유저를 만나고, 함께 만드는 사이드 프로젝트 플랫폼",
     siteName: "zemix",
     images: [
       {
@@ -66,10 +73,9 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
-    card: "summary",
-    title: "zemix — 유저를 만나고, 함께 만드는 사이드 프로젝트",
-    description:
-      "사이드 프로젝트 런칭, 초기 유저 확보, 피드백 및 팀원 구인을 한곳에서. zemix 메이커 플랫폼.",
+    card: "summary_large_image",
+    title: "zemix — 사이드 프로젝트 메이커 커뮤니티",
+    description: "유저를 만나고, 함께 만드는 사이드 프로젝트 플랫폼",
     images: ["/icon.svg"],
   },
   verification: {
@@ -82,6 +88,36 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLdWebsite = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: "zemix",
+      alternateName: ["Zemix", "zemix.vercel.app", "제믹스"],
+      description:
+        "zemix는 사이드 프로젝트를 런칭하고 초기 유저를 만나 피드백과 동료를 구하는 메이커 커뮤니티 플랫폼입니다.",
+      inLanguage: "ko-KR",
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${SITE_URL}/search?q={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "zemix",
+      alternateName: "Zemix",
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon.svg`,
+      sameAs: [SITE_URL],
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -91,6 +127,10 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <head>
         <meta name="google-site-verification" content="X7GuELZ3QuhLEU_nkwkIedtsOA_0u22iClaGBMg2cKc" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebsite) }}
+        />
         <link
           rel="stylesheet"
           as="style"

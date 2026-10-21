@@ -82,7 +82,7 @@ export default function HomePage() {
   return (
     <div className="animate-fade-in pb-12">
       <h1 className="sr-only">
-        From ideas to launched projects. Get feedback, find teammates, and grow together.
+        zemix — 사이드 프로젝트 메이커 커뮤니티 (zemix.vercel.app)
       </h1>
 
       {/* Mobile About Banner */}

@@ -8,7 +8,7 @@ const SITE_URL =
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
-    : "https://zemix.app");
+    : "https://zemix.vercel.app");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let projects = getSharedProjects();
@@ -61,6 +61,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  // Dynamic project routes for Googlebot crawling
   const projectRoutes: MetadataRoute.Sitemap = projects.map((p) => ({
     url: `${SITE_URL}/projects/${p.id}`,
     lastModified: p.updatedAt ? new Date(p.updatedAt) : new Date(),

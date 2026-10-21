@@ -10,7 +10,7 @@ const SITE_URL =
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
-    : "https://zemix.app");
+    : "https://zemix.vercel.app");
 
 async function getProject(id: string): Promise<Project | null> {
   if (!id || id === "preview") return null;
