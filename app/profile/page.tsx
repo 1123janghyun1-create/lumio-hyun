@@ -19,6 +19,7 @@ export default function ProfilePage() {
   const [github, setGithub] = useState(user?.socials?.github || "");
   const [website, setWebsite] = useState(user?.socials?.website || "");
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   React.useEffect(() => {
@@ -57,24 +58,32 @@ export default function ProfilePage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || saving) return;
 
-    const updated = {
-      ...user,
-      name: name.trim() || user.name,
-      handle: handle.trim().toLowerCase().replace(/[^a-z0-9_]/g, "") || user.handle,
-      bio: bio.trim(),
-      role: role.trim() || "Developer",
-      avatar: avatar || user.avatar,
-      socials: {
-        github: github.trim(),
-        website: website.trim(),
-      },
-    };
+    try {
+      setSaving(true);
+      const updated = {
+        ...user,
+        name: name.trim() || user.name,
+        handle: handle.trim().toLowerCase().replace(/[^a-z0-9_]/g, "") || user.handle,
+        bio: bio.trim(),
+        role: role.trim() || "Developer",
+        avatar: avatar || user.avatar,
+        socials: {
+          github: github.trim(),
+          website: website.trim(),
+        },
+      };
 
-    await updateUser(updated);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+      await updateUser(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err: any) {
+      console.error("Save profile error:", err);
+      alert("프로필 저장 중 오류가 발생했습니다. 다시 시도해 주세요.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading || !user) {
@@ -235,10 +244,11 @@ export default function ProfilePage() {
           )}
           <button
             type="submit"
-            className="flex items-center gap-1.5 rounded-control bg-primary px-5 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover cursor-pointer"
+            disabled={saving || uploading}
+            className="flex items-center gap-1.5 rounded-control bg-primary px-5 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover disabled:opacity-50 cursor-pointer transition-all"
           >
             <Save className="h-3.5 w-3.5" />
-            변경사항 저장
+            {saving ? "저장 중..." : "변경사항 저장"}
           </button>
         </div>
       </form>

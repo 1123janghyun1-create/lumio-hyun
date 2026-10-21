@@ -28,22 +28,36 @@ export async function GET(request: Request) {
         const handle = (meta.user_name || emailPrefix).toLowerCase().replace(/[^a-z0-9_]/g, "") || "maker";
         const avatar = meta.avatar_url || meta.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.id}`;
 
-        // Ensure newly logged-in user is instantly registered into Supabase profiles table
+        // Ensure newly logged-in user is registered into Supabase profiles table without overwriting existing data
         try {
-          await (supabase as any).from("profiles").upsert({
-            id: u.id,
-            name: fullName,
-            handle: handle,
-            avatar_url: avatar,
-            bio: meta.bio || "zemix 메이커",
-            role: meta.role || "Maker",
-            is_starting_member: true,
-            github_url: meta.preferred_username ? `https://github.com/${meta.preferred_username}` : null,
-            website_url: meta.website || null,
-            updated_at: new Date().toISOString(),
-          });
+          const { data: existingProfile } = await (supabase as any)
+            .from("profiles")
+            .select("id")
+            .eq("id", u.id)
+            .maybeSingle();
+
+          if (existingProfile) {
+            // Profile ALREADY exists: never overwrite customized bio, role, handle, name, socials!
+            await (supabase as any).from("profiles").update({
+              updated_at: new Date().toISOString(),
+            }).eq("id", u.id);
+          } else {
+            // First time login: insert initial record
+            await (supabase as any).from("profiles").insert({
+              id: u.id,
+              name: fullName,
+              handle: handle,
+              avatar_url: avatar,
+              bio: "zemix 메이커",
+              role: "Maker",
+              is_starting_member: true,
+              github_url: meta.preferred_username ? `https://github.com/${meta.preferred_username}` : null,
+              website_url: meta.website || null,
+              updated_at: new Date().toISOString(),
+            });
+          }
         } catch (dbErr) {
-          console.warn("Auth callback profiles upsert error:", dbErr);
+          console.warn("Auth callback profiles safe register error:", dbErr);
         }
 
         return NextResponse.redirect(new URL(next, requestUrl.origin));

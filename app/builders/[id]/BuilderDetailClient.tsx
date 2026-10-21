@@ -267,20 +267,12 @@ export default function BuilderDetailClient({ builderId }: { builderId: string }
         </p>
 
         {/* Stats Summary Bar */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-border/50">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-border/50">
           <div className="flex items-center gap-2.5 p-3 rounded-[12px] bg-surface-muted/60 border border-border/40">
             <Layers className="h-4 w-4 text-primary shrink-0" />
             <div>
               <p className="text-[11px] text-muted">등록한 프로젝트</p>
               <p className="text-sm font-bold text-foreground">{projects.length}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 p-3 rounded-[12px] bg-surface-muted/60 border border-border/40">
-            <Heart className="h-4 w-4 text-danger shrink-0" />
-            <div>
-              <p className="text-[11px] text-muted">받은 총 좋아요</p>
-              <p className="text-sm font-bold text-foreground">{totalLikes}</p>
             </div>
           </div>
 

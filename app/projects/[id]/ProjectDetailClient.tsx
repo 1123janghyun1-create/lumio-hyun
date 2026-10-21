@@ -22,6 +22,8 @@ import {
   ChevronRight,
   Edit3,
   Trash2,
+  Play,
+  MessageCircle,
 } from "lucide-react";
 import { GithubIcon } from "@/components/Icons";
 import {
@@ -54,6 +56,52 @@ import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 
 type TabType = "overview" | "feedback" | "comments" | "timeline" | "insights" | "collaborators";
 
+const STAGE_LABELS: Record<string, { label: string; badgeClass: string; desc: string }> = {
+  idea: {
+    label: "💡 아이디어 (Idea)",
+    badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
+    desc: "아직 구현 전인 아이디어 및 컨셉 구상 단계",
+  },
+  building: {
+    label: "🛠️ 개발 중 (Building)",
+    badgeClass: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
+    desc: "현재 활발히 기능 개발 및 제작이 진행 중인 프로젝트",
+  },
+  beta: {
+    label: "🧪 베타 테스트 (Beta)",
+    badgeClass: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20",
+    desc: "실제 동작하며 초기 사용자의 피드백을 수집 중인 상태",
+  },
+  public: {
+    label: "🚀 공식 런칭 (Public)",
+    badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
+    desc: "누구나 사용할 수 있도록 안정적으로 배포된 공식 서비스",
+  },
+};
+
+const HELP_LABELS: Record<string, { label: string; desc: string }> = {
+  tester: {
+    label: "🧪 테스터 모집",
+    desc: "서비스를 직접 사용해보고 버그나 사용성을 피드백해줄 테스터",
+  },
+  feedback: {
+    label: "💬 피드백 환영",
+    desc: "기획 방향성, UX, 아이디어에 대한 의견을 나눠줄 동료",
+  },
+  developer: {
+    label: "💻 개발자 모집",
+    desc: "프론트/백엔드 기능 구현을 함께 완성할 개발 팀원",
+  },
+  designer: {
+    label: "🎨 디자이너 모집",
+    desc: "UI/UX 디자인, 브랜딩, 그래픽 에셋 작업을 함께할 디자이너",
+  },
+  cofounder: {
+    label: "🤝 공동창업자 모집",
+    desc: "비즈니스와 장기적인 비전을 함께 키워갈 파트너",
+  },
+};
+
 export default function ProjectDetailClient({
   projectId,
   initialProject,
@@ -67,15 +115,18 @@ export default function ProjectDetailClient({
   const [project, setProject] = useState<Project | null>(() => {
     if (initialProject) {
       if (typeof window !== "undefined") {
-        const local = getProjectById(initialProject.id);
-        if (local) return local;
         const isLiked = isProjectLiked(initialProject.id);
+        const local = getProjectById(initialProject.id);
         return {
+          ...local,
           ...initialProject,
-          isLiked,
+          isLiked: isLiked || !!local?.isLiked,
         };
       }
       return initialProject;
+    }
+    if (typeof window !== "undefined") {
+      return getProjectById(projectId) || null;
     }
     return null;
   });
@@ -114,15 +165,23 @@ export default function ProjectDetailClient({
 
   useEffect(() => {
     let mounted = true;
-    const proj = getProjectById(projectId);
-    if (proj) {
-      setProject(proj);
-      setLoading(false);
+    if (!initialProject) {
+      const proj = getProjectById(projectId);
+      if (proj) {
+        setProject(proj);
+        setLoading(false);
+        recordProjectView(projectId);
+        setFeedbacks(getFeedbacksByProject(projectId));
+        setComments(getCommentsByProject(projectId));
+        setTimeline(getTimelineByProject(projectId));
+        setIsFollowingMaker(isBuilderFollowed(proj.author?.id));
+      }
+    } else {
       recordProjectView(projectId);
       setFeedbacks(getFeedbacksByProject(projectId));
       setComments(getCommentsByProject(projectId));
       setTimeline(getTimelineByProject(projectId));
-      setIsFollowingMaker(isBuilderFollowed(proj.author?.id));
+      setIsFollowingMaker(isBuilderFollowed(initialProject.author?.id));
     }
 
     // Always fetch latest shared project, feedbacks, comments from server so any device can load it
@@ -131,7 +190,14 @@ export default function ProjectDetailClient({
         if (!mounted) return;
         const found = allProjects.find((p) => p.id === projectId);
         if (found) {
-          setProject(found);
+          setProject((prev) => ({
+            ...(prev || {}),
+            ...found,
+            description: found.description || prev?.description || "",
+            demoUrl: found.demoUrl || prev?.demoUrl,
+            teamChat: found.teamChat || prev?.teamChat,
+            stage: found.stage || prev?.stage,
+          }));
           setIsFollowingMaker(isBuilderFollowed(found.author?.id));
         }
       })
@@ -147,7 +213,14 @@ export default function ProjectDetailClient({
         if (!mounted) return;
         const found = allProjects.find((p) => p.id === projectId);
         if (found) {
-          setProject(found);
+          setProject((prev) => ({
+            ...(prev || {}),
+            ...found,
+            description: found.description || prev?.description || "",
+            demoUrl: found.demoUrl || prev?.demoUrl,
+            teamChat: found.teamChat || prev?.teamChat,
+            stage: found.stage || prev?.stage,
+          }));
           setIsFollowingMaker(isBuilderFollowed(found.author?.id));
         }
       });
@@ -160,7 +233,7 @@ export default function ProjectDetailClient({
       mounted = false;
       window.removeEventListener("lumio_data_synced", handleSync);
     };
-  }, [projectId, user?.id]);
+  }, [projectId, user?.id, initialProject]);
 
   if (loading && !project) {
     return (
@@ -347,6 +420,9 @@ export default function ProjectDetailClient({
     { key: "collaborators", label: "Collaborators" },
   ];
 
+  const stageKey = project.stage || (project.status === "MVP" ? "idea" : project.status === "Beta" ? "beta" : "public");
+  const stageInfo = STAGE_LABELS[stageKey] || STAGE_LABELS["public"];
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-8 animate-fade-in">
       {/* Project Card Header Box */}
@@ -392,10 +468,20 @@ export default function ProjectDetailClient({
                 </span>
               )}
               <div>
-                <div className="mb-2">
-                  <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-success-soft text-success">
-                    {project.status}
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${stageInfo.badgeClass}`}>
+                    {stageInfo.label}
                   </span>
+                  {project.lookingForTeam && (
+                    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-primary-soft text-primary border border-primary/20">
+                      👥 팀원 모집 중
+                    </span>
+                  )}
+                  {project.lookingForTesters && (
+                    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                      🧪 테스터 모집 중
+                    </span>
+                  )}
                 </div>
                 <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                   {project.title}
@@ -483,6 +569,24 @@ export default function ProjectDetailClient({
               </a>
             )}
 
+            {project.demoUrl && (
+              <a
+                href={project.demoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+              >
+                <Play className="h-3.5 w-3.5 text-purple-500" />
+                <span className="flex flex-col items-start leading-tight">
+                  <span className="text-xs font-semibold text-foreground">Live Demo</span>
+                  <span className="text-[11px] font-normal text-muted-foreground">
+                    {project.demoUrl.replace(/^https?:\/\//, "")}
+                  </span>
+                </span>
+                <ExternalLink className="h-3 w-3 ml-1 text-muted" />
+              </a>
+            )}
+
             {project.githubUrl && (
               <a
                 href={project.githubUrl}
@@ -492,6 +596,27 @@ export default function ProjectDetailClient({
               >
                 <GithubIcon className="h-3.5 w-3.5" />
                 <span className="text-xs font-semibold text-foreground">GitHub 저장소</span>
+                <ExternalLink className="h-3 w-3 ml-1 text-muted" />
+              </a>
+            )}
+
+            {project.teamChat?.url && (
+              <a
+                href={project.teamChat.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+              >
+                <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
+                <span className="flex flex-col items-start leading-tight">
+                  <span className="text-xs font-semibold text-foreground">
+                    {project.teamChat.platform || "Team Chat"}
+                  </span>
+                  <span className="text-[11px] font-normal text-muted-foreground">
+                    소통 채널 참여
+                  </span>
+                </span>
+                <ExternalLink className="h-3 w-3 ml-1 text-muted" />
               </a>
             )}
 
@@ -534,12 +659,58 @@ export default function ProjectDetailClient({
           {/* TAB 1: OVERVIEW */}
           {activeTab === "overview" && (
             <div className="space-y-8 animate-fade-in">
-              <div className="rounded-card border border-border bg-surface p-6 shadow-sm">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  프로젝트 소개
+              {/* Project Intro / Description */}
+              <div className="rounded-card border border-border bg-surface p-6 sm:p-7 shadow-sm">
+                <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span>프로젝트 상세 소개</span>
                 </h3>
-                <div className="whitespace-pre-line text-[15px] leading-relaxed text-foreground">
-                  {project.description}
+                <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground font-normal">
+                  {project.description || project.tagline}
+                </div>
+              </div>
+
+              {/* Project Status & Seeking Help/Roles */}
+              <div className="rounded-card border border-border bg-surface p-6 shadow-sm">
+                <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span>프로젝트 현황 및 찾는 동료</span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Stage Info */}
+                  <div className="rounded-control border border-border bg-surface-muted/50 p-4">
+                    <span className="text-xs font-semibold text-muted block mb-1">현재 개발 단계</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${stageInfo.badgeClass}`}>
+                        {stageInfo.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted mt-2">
+                      {stageInfo.desc}
+                    </p>
+                  </div>
+
+                  {/* Looking For Help & Roles */}
+                  <div className="rounded-control border border-border bg-surface-muted/50 p-4">
+                    <span className="text-xs font-semibold text-muted block mb-1">모집 및 구하는 도움</span>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {(project.lookingFor && project.lookingFor.length > 0) ? (
+                        project.lookingFor.map((key) => {
+                          const item = HELP_LABELS[key];
+                          return (
+                            <span
+                              key={key}
+                              className="inline-flex items-center rounded-full bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary border border-primary/20"
+                            >
+                              {item?.label || key}
+                            </span>
+                          );
+                        })
+                      ) : (
+                        <span className="text-xs text-muted">현재 별도 모집 중인 역할이 없습니다.</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -547,18 +718,18 @@ export default function ProjectDetailClient({
               {project.screenshots && project.screenshots.length > 0 && (
                 <div>
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                    Screenshots
+                    Screenshots ({project.screenshots.length})
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {project.screenshots.map((img, i) => (
                       <div
                         key={i}
                         onClick={() => setSelectedImage(img)}
-                        className="overflow-hidden rounded-control border border-border cursor-pointer group"
+                        className="overflow-hidden rounded-control border border-border cursor-pointer group bg-surface-muted"
                       >
                         <img
                           src={img}
-                          alt=""
+                          alt={`Screenshot ${i + 1}`}
                           className="h-48 w-full object-cover transition-transform duration-200 group-hover:scale-105"
                         />
                       </div>
@@ -1147,8 +1318,8 @@ export default function ProjectDetailClient({
             </p>
 
             <div className="flex justify-between py-1 border-b border-border/50">
-              <span className="text-muted">상태 (Status)</span>
-              <span className="font-semibold text-foreground">{project.status}</span>
+              <span className="text-muted">개발 단계</span>
+              <span className="font-semibold text-foreground">{stageInfo.label}</span>
             </div>
 
             <div className="flex justify-between py-1 border-b border-border/50">
@@ -1165,12 +1336,19 @@ export default function ProjectDetailClient({
               </span>
             </div>
 
-            <div className="flex justify-between py-1">
+            <div className="flex justify-between py-1 border-b border-border/50">
               <span className="text-muted">테스터 모집 여부</span>
               <span className="font-medium text-foreground">
                 {project.lookingForTesters ? "모집 중 (Looking)" : "완료"}
               </span>
             </div>
+
+            {project.teamChat?.url && (
+              <div className="flex justify-between py-1">
+                <span className="text-muted">소통 채널</span>
+                <span className="font-medium text-foreground">{project.teamChat.platform || "Chat"}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

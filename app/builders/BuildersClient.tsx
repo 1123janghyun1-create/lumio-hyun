@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Globe, Users, Heart, Layers } from "lucide-react";
+import { Search, Globe, Users, Layers } from "lucide-react";
 import { GithubIcon } from "@/components/Icons";
 import { Builder } from "@/lib/types";
 import { getBuilders, toggleFollowBuilder, fetchSharedBuilders } from "@/lib/storage";
@@ -211,13 +211,9 @@ export default function BuildersClient({ initialBuilders = [] }: { initialBuilde
                     <Layers className="h-3.5 w-3.5" />
                     <span>{builder.projectsCount || 0} 프로젝트</span>
                   </span>
-                  <span className="flex items-center gap-1" title="받은 총 좋아요">
-                    <Heart className="h-3.5 w-3.5 text-danger" />
-                    <span>{builder.totalLikes || 0}</span>
-                  </span>
                   <span className="flex items-center gap-1" title="팔로워">
                     <Users className="h-3.5 w-3.5 text-primary" />
-                    <span>{builder.followersCount || 0}</span>
+                    <span>{builder.followersCount || 0} 팔로워</span>
                   </span>
                 </div>
 

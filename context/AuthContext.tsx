@@ -10,7 +10,7 @@ interface AuthContextType {
   loading: boolean;
   signInWithGoogle: (redirectPath?: string) => Promise<{ error: any }>;
   logout: () => Promise<void>;
-  updateUser: (updated: Builder) => void;
+  updateUser: (updated: Builder) => Promise<void>;
   isSupabaseConnected: boolean;
 }
 
@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signInWithGoogle: async () => ({ error: null }),
   logout: async () => {},
-  updateUser: () => {},
+  updateUser: async () => {},
   isSupabaseConnected: true,
 });
 
@@ -62,13 +62,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 1. Google OAuth / raw auth fallback
     const rawFallback = syncUserFromSupabase(sessionUser);
 
-    // 2. Check localStorage for currently stored user
-    const local = getCurrentUser();
-    let current: Builder = (local && local.id === sessionUser.id)
-      ? { ...rawFallback, ...local }
-      : rawFallback;
-
-    // 3. Query Supabase profiles table
+    // 2. Fetch directly from Supabase profiles table (single source of truth for custom profile data)
+    let dbProfile: any = null;
     try {
       if (supabaseClient) {
         const { data, error } = await (supabaseClient as any)
@@ -78,73 +73,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .maybeSingle();
 
         if (!error && data) {
-          current = {
-            ...current,
-            name: data.name || current.name,
-            handle: data.handle || current.handle,
-            avatar: data.avatar_url || current.avatar,
-            bio: data.bio !== null && data.bio !== undefined ? data.bio : current.bio,
-            role: data.role || current.role,
-            isStartingMember: data.is_starting_member ?? current.isStartingMember,
-            socials: {
-              ...current.socials,
-              github: data.github_url || current.socials?.github,
-              twitter: data.twitter_url || current.socials?.twitter,
-              website: data.website_url || current.socials?.website,
-            },
-          };
-        } else {
-          // Auto create profile in Supabase if not yet present
-          try {
-            await (supabaseClient as any).from("profiles").upsert({
-              id: current.id,
-              name: current.name,
-              handle: current.handle,
-              avatar_url: current.avatar,
-              bio: current.bio,
-              role: current.role,
-              is_starting_member: true,
-              followers_count: 0,
-              updated_at: new Date().toISOString(),
-            });
-          } catch {}
+          dbProfile = data;
         }
       }
     } catch (e) {
-      console.warn("Profiles query/upsert error:", e);
+      console.warn("Profiles query error:", e);
     }
 
-    // Ensure server API has registered this builder
+    // 3. Check localStorage
+    const local = getCurrentUser();
+    const hasMatchingLocal = local && local.id === sessionUser.id;
+
+    // 4. Resolve current user:
+    // When dbProfile exists, DB values are strictly preferred so customized bio, role, handle, name, socials persist!
+    const meta = sessionUser.user_metadata || {};
+    const resolved: Builder = {
+      id: sessionUser.id,
+      name: dbProfile?.name || (hasMatchingLocal ? local.name : null) || meta.full_name || meta.name || rawFallback.name,
+      handle: dbProfile?.handle || (hasMatchingLocal ? local.handle : null) || meta.user_name || rawFallback.handle,
+      avatar: dbProfile?.avatar_url || (hasMatchingLocal ? local.avatar : null) || meta.avatar_url || meta.picture || rawFallback.avatar,
+      bio: dbProfile?.bio !== undefined && dbProfile?.bio !== null
+        ? dbProfile.bio
+        : (hasMatchingLocal && local.bio !== undefined ? local.bio : (meta.bio || "zemix 메이커")),
+      role: dbProfile?.role || (hasMatchingLocal ? local.role : null) || meta.role || "Maker",
+      isStartingMember: dbProfile?.is_starting_member ?? (hasMatchingLocal ? local.isStartingMember : true),
+      followersCount: dbProfile?.followers_count ?? (hasMatchingLocal ? local.followersCount : 0),
+      socials: {
+        github: dbProfile?.github_url !== undefined ? (dbProfile.github_url || "") : (hasMatchingLocal ? local.socials?.github : undefined),
+        twitter: dbProfile?.twitter_url !== undefined ? (dbProfile.twitter_url || "") : (hasMatchingLocal ? local.socials?.twitter : undefined),
+        website: dbProfile?.website_url !== undefined ? (dbProfile.website_url || "") : (hasMatchingLocal ? local.socials?.website : undefined),
+      },
+    };
+
+    // 5. If brand new user with no record in profiles, initialize in Supabase
+    if (!dbProfile && supabaseClient) {
+      try {
+        await (supabaseClient as any).from("profiles").upsert({
+          id: resolved.id,
+          name: resolved.name,
+          handle: resolved.handle,
+          avatar_url: resolved.avatar,
+          bio: resolved.bio,
+          role: resolved.role,
+          is_starting_member: resolved.isStartingMember,
+          github_url: resolved.socials?.github || null,
+          website_url: resolved.socials?.website || null,
+          updated_at: new Date().toISOString(),
+        });
+      } catch (upsertErr) {
+        console.warn("Initial profiles upsert error:", upsertErr);
+      }
+    }
+
+    // 6. Ensure server API has registered this builder
     try {
       fetch("/api/builders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(current),
+        body: JSON.stringify(resolved),
       }).catch(() => {});
     } catch {}
 
-    // 4. Query server store via /api/builders to check if there is an existing builder on disk
-    try {
-      const res = await fetch("/api/builders", { cache: "no-store" });
-      if (res.ok) {
-        const list = await res.json();
-        if (Array.isArray(list)) {
-          const found = list.find((b: any) => b.id === sessionUser.id);
-          if (found) {
-            current = {
-              ...found,
-              ...current,
-              followersCount: found.followersCount ?? current.followersCount ?? 0,
-            };
-          }
-        }
-      }
-    } catch {}
-
-    setUser(current);
-    storeCurrentUser(current);
-    upsertBuilder(current);
-    return current;
+    setUser(resolved);
+    storeCurrentUser(resolved);
+    upsertBuilder(resolved);
+    return resolved;
   };
 
   useEffect(() => {
@@ -228,14 +221,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = "/";
   };
 
-  const updateUser = async (updated: Builder) => {
+  const updateUser = async (updated: Builder): Promise<void> => {
     setUser(updated);
     storeCurrentUser(updated);
     upsertBuilder(updated);
 
+    // 1. Sync to server store via API
+    try {
+      await fetch("/api/builders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updated),
+      });
+    } catch (e) {
+      console.warn("API builder sync error:", e);
+    }
+
     const supabase = createClient();
     if (supabase) {
-      // 1. Update Supabase Auth user_metadata
+      // 2. Update Supabase Auth user_metadata
       try {
         await supabase.auth.updateUser({
           data: {
@@ -246,15 +250,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             picture: updated.avatar,
             bio: updated.bio,
             role: updated.role,
-            website: updated.socials?.website,
-            github: updated.socials?.github,
+            website: updated.socials?.website || null,
+            github: updated.socials?.github || null,
           },
         });
       } catch (authErr) {
         console.warn("Auth updateUser error:", authErr);
       }
 
-      // 2. Upsert into profiles table
+      // 3. Upsert into profiles table
       try {
         await (supabase as any).from("profiles").upsert({
           id: updated.id,
@@ -263,13 +267,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatar_url: updated.avatar,
           bio: updated.bio,
           role: updated.role,
-          github_url: updated.socials?.github,
-          website_url: updated.socials?.website,
+          github_url: updated.socials?.github || null,
+          website_url: updated.socials?.website || null,
           updated_at: new Date().toISOString(),
         });
       } catch (profileErr) {
         console.warn("Profiles update error:", profileErr);
       }
+
+      // 4. Update author info across user's projects and community posts in Supabase
+      try {
+        await (supabase as any)
+          .from("projects")
+          .update({ author: updated })
+          .eq("user_id", updated.id);
+      } catch {}
+
+      try {
+        await (supabase as any)
+          .from("community_posts")
+          .update({ author: updated })
+          .eq("author_id", updated.id);
+      } catch {}
+    }
+
+    // 5. Dispatch global sync event
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("lumio_data_synced"));
     }
   };
 
