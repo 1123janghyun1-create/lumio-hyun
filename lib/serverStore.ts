@@ -40,20 +40,15 @@ function ensureStoreFile(): StoreData {
 
     const content = fs.readFileSync(STORE_FILE, "utf-8");
     const parsed = JSON.parse(content) as StoreData;
+    if (!parsed.builders) parsed.builders = [];
     if (!parsed.follows) parsed.follows = {};
     if (!parsed.projectLikes) parsed.projectLikes = {};
     if (!parsed.communityLikes) parsed.communityLikes = {};
-
-    // Ensure all bundled seed builders are present
-    const existingIds = new Set(parsed.builders.map((b) => b.id));
-    if (Array.isArray(seedStoreData.builders)) {
-      (seedStoreData.builders as Builder[]).forEach((seedB) => {
-        if (!existingIds.has(seedB.id)) {
-          parsed.builders.push(seedB);
-          existingIds.add(seedB.id);
-        }
-      });
-    }
+    if (!parsed.projects) parsed.projects = [];
+    if (!parsed.communityPosts) parsed.communityPosts = [];
+    if (!parsed.feedbacks) parsed.feedbacks = [];
+    if (!parsed.comments) parsed.comments = [];
+    if (!parsed.timeline) parsed.timeline = [];
 
     return parsed;
   } catch (err) {

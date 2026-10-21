@@ -21,7 +21,7 @@ import {
 
 const STORAGE_KEYS = {
   PROJECTS: "lumio_clean_projects",
-  BUILDERS: "lumio_clean_builders",
+  BUILDERS: "zemix_clean_builders_v3",
   FEEDBACKS: "lumio_clean_feedbacks",
   COMMENTS: "lumio_clean_comments",
   TIMELINE: "lumio_clean_timeline",
@@ -37,6 +37,8 @@ const STORAGE_KEYS = {
 // Purge legacy mock data in browser
 if (typeof window !== "undefined") {
   try {
+    localStorage.removeItem("lumio_clean_builders");
+    localStorage.removeItem("lumio_clean_builders_v2");
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
@@ -116,16 +118,9 @@ export async function syncAllWithServer(): Promise<void> {
       changed = true;
     }
 
-    // Resilient Builders sync
-    if (bRes.status === "fulfilled" && Array.isArray(bRes.value) && bRes.value.length > 0) {
-      const localBuilders = getStoredItem<Builder[]>(STORAGE_KEYS.BUILDERS, []);
-      const map = new Map<string, Builder>();
-      localBuilders.forEach((b) => map.set(b.id, b));
-      bRes.value.forEach((b: any) => {
-        const existing = map.get(b.id);
-        map.set(b.id, { ...existing, ...b });
-      });
-      setStoredItem(STORAGE_KEYS.BUILDERS, Array.from(map.values()));
+    // Resilient Builders sync (Server is single source of truth for real logged-in users)
+    if (bRes.status === "fulfilled" && Array.isArray(bRes.value)) {
+      setStoredItem(STORAGE_KEYS.BUILDERS, bRes.value);
       changed = true;
     }
 
@@ -236,34 +231,20 @@ export async function fetchSharedBuilders(currentUserId?: string): Promise<Build
       const data = await res.json();
       if (Array.isArray(data)) {
         const followedIds = getStoredItem<string[]>(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, []);
-        const localBuilders = getStoredItem<Builder[]>(STORAGE_KEYS.BUILDERS, []);
-
-        // Resilient merge: keep all known local builders and update with incoming data
-        const map = new Map<string, Builder>();
-        localBuilders.forEach((b) => map.set(b.id, b));
-
-        data.forEach((b) => {
-          const existing = map.get(b.id);
-          const isFollowing = currentUserId
+        const formatted: Builder[] = data.map((b: any) => ({
+          ...b,
+          isFollowing: currentUserId
             ? (b.isFollowing ?? followedIds.includes(b.id))
-            : followedIds.includes(b.id);
-          map.set(b.id, {
-            ...existing,
-            ...b,
-            followersCount: b.followersCount ?? existing?.followersCount ?? 0,
-            isFollowing,
-          });
-        });
-
-        const merged = Array.from(map.values());
+            : followedIds.includes(b.id),
+        }));
 
         if (currentUserId) {
-          const serverFollowedIds = merged.filter((b) => b.isFollowing).map((b) => b.id);
+          const serverFollowedIds = formatted.filter((b) => b.isFollowing).map((b) => b.id);
           setStoredItem(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, serverFollowedIds);
         }
 
-        setStoredItem(STORAGE_KEYS.BUILDERS, merged);
-        return merged;
+        setStoredItem(STORAGE_KEYS.BUILDERS, formatted);
+        return formatted;
       }
     }
   } catch {}

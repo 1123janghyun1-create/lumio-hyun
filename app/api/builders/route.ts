@@ -7,72 +7,90 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const currentUserId = searchParams.get("currentUserId") || undefined;
 
-    const localBuilders = getSharedBuilders(currentUserId);
-    const builderMap = new Map<string, any>();
-    localBuilders.forEach((b) => builderMap.set(b.id, b));
+    const supabase = getSupabase();
+    let builders: any[] = [];
 
-    // Also attempt Supabase profiles and follows query if available
-    try {
-      const supabase = getSupabase();
-      if (supabase) {
-        const { data: profiles, error: pError } = await (supabase as any).from("profiles").select("*");
-        if (!pError && profiles && profiles.length > 0) {
-          // Fetch remote follows if table exists
+    if (supabase) {
+      try {
+        const { data: profiles, error: pError } = await (supabase as any)
+          .from("profiles")
+          .select("*");
+
+        if (!pError && Array.isArray(profiles)) {
+          // Only real users (exclude mock IDs starting with builder-)
+          const realProfiles = profiles.filter((p: any) => !p.id.startsWith("builder-"));
+          // 1. Fetch remote follows
           let supabaseFollows: any[] = [];
           try {
-            const { data: fData, error: fError } = await (supabase as any).from("follows").select("*");
-            if (!fError && fData) {
+            const { data: fData } = await (supabase as any).from("follows").select("*");
+            if (Array.isArray(fData)) {
               supabaseFollows = fData;
             }
           } catch {}
 
-          profiles.forEach((p: any) => {
-            const existing = builderMap.get(p.id) || {};
-            let followersCount = existing.followersCount ?? 0;
-            let isFollowing = existing.isFollowing ?? false;
-
-            if (supabaseFollows.length > 0) {
-              const forThis = supabaseFollows.filter((f) => f.following_id === p.id);
-              followersCount = forThis.length;
-              if (currentUserId) {
-                isFollowing = forThis.some((f) => f.follower_id === currentUserId);
-              }
+          // 2. Fetch project stats per builder from projects table
+          const projectStats = new Map<string, { projectsCount: number; totalLikes: number }>();
+          try {
+            const { data: projData } = await (supabase as any)
+              .from("projects")
+              .select("user_id, author, likes_count");
+            if (Array.isArray(projData)) {
+              projData.forEach((p: any) => {
+                const uid = p.user_id || p.author?.id;
+                if (uid) {
+                  const stat = projectStats.get(uid) || { projectsCount: 0, totalLikes: 0 };
+                  stat.projectsCount += 1;
+                  stat.totalLikes += (p.likes_count || 0);
+                  projectStats.set(uid, stat);
+                }
+              });
             }
+          } catch {}
 
-            builderMap.set(p.id, {
-              ...existing,
+          builders = realProfiles.map((p: any) => {
+            const forThis = supabaseFollows.filter((f) => f.following_id === p.id);
+            const followersCount = forThis.length > 0 ? forThis.length : (p.followers_count || 0);
+            const isFollowing = currentUserId
+              ? forThis.some((f) => f.follower_id === currentUserId)
+              : false;
+            const stats = projectStats.get(p.id) || { projectsCount: 0, totalLikes: 0 };
+
+            return {
               id: p.id,
-              name: p.name || existing.name || "Maker",
-              handle: p.handle || existing.handle || "maker",
-              avatar: p.avatar_url || existing.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`,
-              bio: p.bio || existing.bio || "zemix 메이커",
-              role: p.role || existing.role || "Maker",
-              isStartingMember: p.is_starting_member ?? existing.isStartingMember ?? true,
-              followersCount: followersCount,
-              isFollowing: isFollowing,
-              totalLikes: existing.totalLikes ?? 0,
-              projectsCount: existing.projectsCount ?? 0,
+              name: p.name || "Maker",
+              handle: p.handle || "maker",
+              avatar: p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`,
+              bio: p.bio || "zemix 메이커",
+              role: p.role || "Maker",
+              isStartingMember: p.is_starting_member ?? true,
+              followersCount,
+              isFollowing,
+              projectsCount: stats.projectsCount,
+              totalLikes: stats.totalLikes,
               socials: {
-                github: p.github_url || existing.socials?.github,
-                twitter: p.twitter_url || existing.socials?.twitter,
-                website: p.website_url || existing.socials?.website,
+                github: p.github_url,
+                twitter: p.twitter_url,
+                website: p.website_url,
               },
-            });
+            };
           });
         }
+      } catch (dbErr) {
+        console.warn("Supabase profiles query error:", dbErr);
+        builders = getSharedBuilders(currentUserId);
       }
-    } catch {}
+    } else {
+      builders = getSharedBuilders(currentUserId);
+    }
 
-    const allBuilders = Array.from(builderMap.values());
-
-    // Sort by followersCount descending (highest first)
-    allBuilders.sort((a, b) => {
+    // Sort by followersCount descending (highest first), then by name
+    builders.sort((a, b) => {
       const diff = (b.followersCount || 0) - (a.followersCount || 0);
       if (diff !== 0) return diff;
       return (a.name || "").localeCompare(b.name || "");
     });
 
-    return NextResponse.json(allBuilders);
+    return NextResponse.json(builders);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -81,7 +99,7 @@ export async function GET(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const { builderId, followerId, delta } = body;
+    const { builderId, followerId } = body;
 
     if (!builderId) {
       return NextResponse.json({ error: "builderId is required" }, { status: 400 });

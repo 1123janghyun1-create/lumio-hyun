@@ -28,96 +28,31 @@ export default function BuildersPage() {
   const [selectedRole, setSelectedRole] = useState("All");
 
   const loadAllBuilders = async () => {
-    // 1. Fetch from shared server API with currentUserId
+    // 1. Fetch from shared server API (Supabase profiles) with currentUserId
     const shared = await fetchSharedBuilders(user?.id);
 
-    // Merge smoothly into state without dropping already displayed builders
-    setBuilders((prev) => {
-      const map = new Map<string, Builder>();
-      prev.forEach((b) => map.set(b.id, b));
-      shared.forEach((b) => {
-        const existing = map.get(b.id);
-        map.set(b.id, {
-          ...existing,
-          ...b,
-          followersCount: b.followersCount ?? existing?.followersCount ?? 0,
-        });
+    const map = new Map<string, Builder>();
+    shared.forEach((b) => map.set(b.id, b));
+
+    // Ensure currently logged-in user is included if authenticated
+    if (user) {
+      const existing = map.get(user.id);
+      map.set(user.id, {
+        ...existing,
+        ...user,
+        followersCount: existing?.followersCount ?? user.followersCount ?? 0,
+        isFollowing: false,
       });
+    }
 
-      // Ensure currently logged-in user is included
-      if (user) {
-        const existing = map.get(user.id);
-        map.set(user.id, {
-          ...existing,
-          ...user,
-          followersCount: existing?.followersCount ?? 0,
-          isFollowing: false,
-        });
-      }
-
-      const merged = Array.from(map.values());
-      merged.sort((a, b) => {
-        const diff = (b.followersCount || 0) - (a.followersCount || 0);
-        if (diff !== 0) return diff;
-        return (a.name || "").localeCompare(b.name || "");
-      });
-
-      return merged;
+    const merged = Array.from(map.values());
+    merged.sort((a, b) => {
+      const diff = (b.followersCount || 0) - (a.followersCount || 0);
+      if (diff !== 0) return diff;
+      return (a.name || "").localeCompare(b.name || "");
     });
 
-    // 2. Also query Supabase profiles table for any newly registered remote users
-    const supabase = createClient();
-    if (supabase) {
-      try {
-        const { data, error } = await (supabase as any).from("profiles").select("*");
-        if (!error && data && data.length > 0) {
-          const remoteBuilders: Builder[] = data.map((p: any) => ({
-            id: p.id,
-            name: p.name || "Maker",
-            handle: p.handle || "maker",
-            avatar: p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`,
-            bio: p.bio || "zemix 메이커",
-            role: p.role || "Maker",
-            isStartingMember: p.is_starting_member ?? true,
-            socials: {
-              github: p.github_url,
-              twitter: p.twitter_url,
-              website: p.website_url,
-            },
-          }));
-
-          setBuilders((prev) => {
-            const map = new Map<string, Builder>();
-            prev.forEach((b) => map.set(b.id, b));
-            remoteBuilders.forEach((b) => {
-              const existing = map.get(b.id);
-              map.set(b.id, {
-                ...existing,
-                ...b,
-                followersCount: existing?.followersCount ?? 0,
-                isFollowing: existing?.isFollowing ?? false,
-              });
-            });
-            if (user) {
-              const existing = map.get(user.id);
-              map.set(user.id, {
-                ...existing,
-                ...user,
-                followersCount: existing?.followersCount ?? 0,
-                isFollowing: false,
-              });
-            }
-            const merged = Array.from(map.values());
-            merged.sort((a, b) => {
-              const diff = (b.followersCount || 0) - (a.followersCount || 0);
-              if (diff !== 0) return diff;
-              return (a.name || "").localeCompare(b.name || "");
-            });
-            return merged;
-          });
-        }
-      } catch {}
-    }
+    setBuilders(merged);
   };
 
   useEffect(() => {

@@ -173,9 +173,53 @@ alter table public.comments enable row level security;
 drop policy if exists "Allow all read profiles" on public.profiles;
 drop policy if exists "Allow insert profiles" on public.profiles;
 drop policy if exists "Allow update profiles" on public.profiles;
+drop policy if exists "Allow delete profiles" on public.profiles;
 create policy "Allow all read profiles" on public.profiles for select using (true);
 create policy "Allow insert profiles" on public.profiles for insert with check (true);
 create policy "Allow update profiles" on public.profiles for update using (true);
+create policy "Allow delete profiles" on public.profiles for delete using (true);
+
+-- ==============================================================================
+-- SUPABASE AUTH -> PROFILES 자동 연동 트리거 (로그인 시 자동 빌더 등록)
+-- ==============================================================================
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (
+    id,
+    name,
+    handle,
+    avatar_url,
+    bio,
+    role,
+    is_starting_member,
+    followers_count,
+    created_at,
+    updated_at
+  ) values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', split_part(new.email, '@', 1), 'Maker'),
+    lower(regexp_replace(coalesce(new.raw_user_meta_data->>'user_name', split_part(new.email, '@', 1), 'maker'), '[^a-z0-9_]', '', 'g')),
+    coalesce(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture', 'https://api.dicebear.com/7.x/avataaars/svg?seed=' || new.id),
+    'zemix 메이커',
+    'Maker',
+    true,
+    0,
+    now(),
+    now()
+  )
+  on conflict (id) do update set
+    name = coalesce(excluded.name, public.profiles.name),
+    avatar_url = coalesce(excluded.avatar_url, public.profiles.avatar_url),
+    updated_at = now();
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert or update on auth.users
+  for each row execute function public.handle_new_user();
 
 -- Projects 정책
 drop policy if exists "Allow all read projects" on public.projects;

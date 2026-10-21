@@ -93,11 +93,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               website: data.website_url || current.socials?.website,
             },
           };
+        } else {
+          // Auto create profile in Supabase if not yet present
+          try {
+            await (supabaseClient as any).from("profiles").upsert({
+              id: current.id,
+              name: current.name,
+              handle: current.handle,
+              avatar_url: current.avatar,
+              bio: current.bio,
+              role: current.role,
+              is_starting_member: true,
+              followers_count: 0,
+              updated_at: new Date().toISOString(),
+            });
+          } catch {}
         }
       }
     } catch (e) {
-      console.warn("Profiles query error:", e);
+      console.warn("Profiles query/upsert error:", e);
     }
+
+    // Ensure server API has registered this builder
+    try {
+      fetch("/api/builders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(current),
+      }).catch(() => {});
+    } catch {}
 
     // 4. Query server store via /api/builders to check if there is an existing builder on disk
     try {
