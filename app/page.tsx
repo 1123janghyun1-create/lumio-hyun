@@ -110,6 +110,45 @@ export default async function HomePage() {
     })),
   };
 
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "zemix(제믹스)는 어떤 서비스인가요?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "zemix(zemix.vercel.app)는 아이디어를 직접 프로덕트로 구현하는 개발자, 디자이너, 기획자 등 사이드 프로젝트 메이커들을 위한 공식 런칭 및 커뮤니티 플랫폼입니다. 누구나 프로젝트를 등록하고 초기 유저 피드백과 동료를 만날 수 있습니다.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "프로젝트 등록 및 커뮤니티 이용은 무료인가요?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "네, zemix에서 사이드 프로젝트를 등록하고, 피드백을 수집하며, 팀원 모집 및 빌더 프로필을 개설하는 모든 기능은 100% 무료입니다.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "어떤 개발 단계의 프로젝트를 공유할 수 있나요?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "아이디어 구상 단계(Idea), 실제 제작 중인 단계(Building), 초기 베타 테스터를 모집하는 단계(Beta), 배포 완료된 공식 서비스(Public)까지 모든 단계의 사이드 프로젝트를 자유롭게 등록할 수 있습니다.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "초기 사용자 피드백과 동료(팀원)는 어떻게 구하나요?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "프로젝트 상세 페이지에서 카테고리별 피드백(아이디어, 버그 리포트, 사용성 개선)과 실시간 댓글을 통해 유저들과 직접 소통할 수 있으며, '팀원 모집 중' 태그를 활성화하여 개발자, 디자이너, 마케터 동료를 모집할 수 있습니다.",
+        },
+      },
+    ],
+  };
+
   return (
     <>
       <script
@@ -122,6 +161,10 @@ export default async function HomePage() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
         />
       )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <HomeClient initialProjects={initialProjects} />
     </>
   );

@@ -512,13 +512,15 @@ export function toggleProjectLike(projectId: string, userId?: string): { likesCo
 export function recordProjectView(projectId: string): void {
   if (typeof window === "undefined" || !projectId) return;
 
-  // Session deduplication: prevent double count in React StrictMode & rapid refreshes
+  // Prevent multiple rapid calls within 3 seconds for the same project
   try {
-    const sessionKey = `viewed_proj_${projectId}`;
-    if (sessionStorage.getItem(sessionKey)) {
-      return;
+    const lastViewKey = `last_view_${projectId}`;
+    const lastViewTime = Number(sessionStorage.getItem(lastViewKey) || "0");
+    const now = Date.now();
+    if (now - lastViewTime < 3000) {
+      return; // Deduplicate calls within 3 seconds
     }
-    sessionStorage.setItem(sessionKey, "1");
+    sessionStorage.setItem(lastViewKey, String(now));
   } catch {}
 
   const projects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, INITIAL_PROJECTS);

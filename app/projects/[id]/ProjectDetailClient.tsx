@@ -32,6 +32,7 @@ import {
   isProjectLiked,
   toggleProjectLike,
   recordProjectView,
+  recordProjectOutboundClick,
   getFeedbacksByProject,
   fetchSharedFeedbacks,
   addFeedback,
@@ -172,6 +173,7 @@ export default function ProjectDetailClient({
     if (!viewRecordedRef.current) {
       viewRecordedRef.current = true;
       recordProjectView(projectId);
+      setProject((prev) => (prev ? { ...prev, viewsCount: (prev.viewsCount || 0) + 1 } : null));
     }
 
     if (!initialProject) {
@@ -204,11 +206,16 @@ export default function ProjectDetailClient({
               prev?.likesCount || 0,
               isLiked ? 1 : 0
             );
+            const viewsCount = Math.max(
+              found.viewsCount || 0,
+              prev?.viewsCount || 0
+            );
             return {
               ...(prev || {}),
               ...found,
               isLiked,
               likesCount,
+              viewsCount,
               description: found.description || prev?.description || "",
               demoUrl: found.demoUrl || prev?.demoUrl,
               teamChat: found.teamChat || prev?.teamChat,
@@ -237,11 +244,16 @@ export default function ProjectDetailClient({
               prev?.likesCount || 0,
               isLiked ? 1 : 0
             );
+            const viewsCount = Math.max(
+              found.viewsCount || 0,
+              prev?.viewsCount || 0
+            );
             return {
               ...(prev || {}),
               ...found,
               isLiked,
               likesCount,
+              viewsCount,
               description: found.description || prev?.description || "",
               demoUrl: found.demoUrl || prev?.demoUrl,
               teamChat: found.teamChat || prev?.teamChat,
@@ -602,9 +614,10 @@ export default function ProjectDetailClient({
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
             {project.websiteUrl && (
               <a
-                href={`/go/${project.id}`}
+                href={project.websiteUrl}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="noopener"
+                onClick={() => recordProjectOutboundClick(project.id)}
                 className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
               >
                 <Globe className="h-3.5 w-3.5 text-primary" />

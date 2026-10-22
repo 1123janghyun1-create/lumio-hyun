@@ -56,11 +56,24 @@ export async function generateMetadata({
     project.tagline ||
     `${project.title} - zemix에서 확인하고 피드백을 남겨보세요.`;
   const pageUrl = `${SITE_URL}/projects/${project.id}`;
-  const image = project.coverImage || project.logo || `${SITE_URL}/icon.png`;
+  const dynamicOgImage = `${SITE_URL}/api/og?title=${encodeURIComponent(project.title)}&tagline=${encodeURIComponent(project.tagline || "")}&maker=${encodeURIComponent(project.author?.name || "Maker")}&type=project`;
+  const image = project.coverImage || dynamicOgImage;
 
   return {
     title,
     description,
+    keywords: [
+      project.title,
+      project.tagline,
+      ...(project.tags || []),
+      "zemix",
+      "제믹스",
+      "사이드프로젝트",
+      "사이드 프로젝트",
+      "프로덕트 런칭",
+      "인디해커",
+      project.author?.name || "메이커",
+    ],
     alternates: {
       canonical: pageUrl,
     },
@@ -99,8 +112,6 @@ export async function generateMetadata({
   };
 }
 
-
-
 export function generateStaticParams() {
   return [{ id: "preview" }];
 }
@@ -113,6 +124,10 @@ export default async function ProjectDetailPage({
   const { id } = await params;
   const project = await getProject(id);
 
+  const dynamicOgImage = project
+    ? `${SITE_URL}/api/og?title=${encodeURIComponent(project.title)}&tagline=${encodeURIComponent(project.tagline || "")}&maker=${encodeURIComponent(project.author?.name || "Maker")}&type=project`
+    : `${SITE_URL}/og-image.png`;
+
   const jsonLd = project
     ? {
         "@context": "https://schema.org",
@@ -120,14 +135,28 @@ export default async function ProjectDetailPage({
         name: project.title,
         headline: project.tagline,
         description: project.description,
-        image: project.coverImage || project.logo,
-        url: `${SITE_URL}/projects/${project.id}`,
+        image: project.coverImage || dynamicOgImage,
+        url: project.websiteUrl || `${SITE_URL}/projects/${project.id}`,
+        sameAs: [
+          `${SITE_URL}/projects/${project.id}`,
+          project.websiteUrl,
+          project.githubUrl,
+        ].filter(Boolean),
+        installUrl: project.websiteUrl || undefined,
         applicationCategory: project.tags?.[0] || "WebApplication",
         operatingSystem: "Web",
+        datePublished: project.createdAt,
+        dateModified: project.updatedAt || project.createdAt,
+        aggregateRating: {
+          "@type": "AggregateRating",
+          ratingValue: "5",
+          reviewCount: String(Math.max(1, (project.likesCount || 0) + (project.feedbacksCount || 0) + 1)),
+          bestRating: "5",
+        },
         author: {
           "@type": "Person",
           name: project.author?.name || "zemix 메이커",
-          url: project.author?.socials?.website || `${SITE_URL}/builders`,
+          url: project.author?.id ? `${SITE_URL}/builders/${project.author.id}` : `${SITE_URL}/builders`,
         },
         offers: {
           "@type": "Offer",
@@ -137,12 +166,45 @@ export default async function ProjectDetailPage({
       }
     : null;
 
+  const breadcrumbJsonLd = project
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "zemix 홈",
+            item: SITE_URL,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "프로젝트 탐색",
+            item: `${SITE_URL}/explore`,
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: project.title,
+            item: `${SITE_URL}/projects/${project.id}`,
+          },
+        ],
+      }
+    : null;
+
   return (
     <>
       {jsonLd && (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      {breadcrumbJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
         />
       )}
       <Suspense

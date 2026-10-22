@@ -38,16 +38,24 @@ export const metadata: Metadata = {
     "zemix 커뮤니티",
     "사이드 프로젝트",
     "사이드프로젝트",
+    "사이드 프로젝트 플랫폼",
+    "사이드 프로젝트 공유",
+    "사이드 프로젝트 런칭",
     "메이커 커뮤니티",
     "1인 개발",
+    "1인 개발자",
     "인디해커",
+    "인디메이커",
     "토이프로젝트",
     "스타트업",
     "프로덕트 런칭",
     "피드백",
+    "사용자 피드백",
+    "베타 테스터 모집",
     "팀원모집",
     "개발자 커뮤니티",
     "SchoolEcho",
+    "스쿨에코",
     "Buildit",
     "장현",
     "메이커 장현",
@@ -120,6 +128,9 @@ export const metadata: Metadata = {
   },
   verification: {
     google: "X7GuELZ3QuhLEU_nkwkIedtsOA_0u22iClaGBMg2cKc",
+    ...(process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION
+      ? { other: { "naver-site-verification": process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION } }
+      : {}),
   },
 };
 

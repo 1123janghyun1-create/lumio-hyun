@@ -214,6 +214,96 @@ export default function HomeClient({ initialProjects = [] }: { initialProjects?:
           </div>
         )}
       </section>
+
+      {/* SEO & Platform Guide Section */}
+      <section className="mx-auto max-w-7xl px-6 py-16 border-t border-border mt-8">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <span className="inline-block rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-semibold text-primary mb-3">
+            About zemix
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            사이드 프로젝트 런칭과 유저 피드백의 모든 것, zemix
+          </h2>
+          <p className="mt-3 text-sm text-muted leading-relaxed">
+            zemix(제믹스)는 1인 개발자, 인디해커, 기획자, 디자이너들이 사이드 프로젝트를 세상에 선보이고,
+            실제 사용자의 피드백을 수집하며 함께할 동료를 찾는 공식 메이커 커뮤니티 플랫폼입니다.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="rounded-card border border-border bg-surface p-6 shadow-sm">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-lg mb-4">
+              🚀
+            </div>
+            <h3 className="text-base font-bold text-foreground mb-2">
+              초기 사용자 유치 및 런칭
+            </h3>
+            <p className="text-xs text-muted leading-relaxed">
+              아이디어를 실제 서비스로 배포하고, zemix 커뮤니티를 통해 초기 얼리어답터 유저를 확보하여 의미 있는 지표를 만들어보세요.
+            </p>
+          </div>
+
+          <div className="rounded-card border border-border bg-surface p-6 shadow-sm">
+            <div className="h-10 w-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-lg mb-4">
+              💬
+            </div>
+            <h3 className="text-base font-bold text-foreground mb-2">
+              정밀한 피드백 수집
+            </h3>
+            <p className="text-xs text-muted leading-relaxed">
+              버그 리포트, 기능 제안, UX 개선점 등 동료 메이커들의 생생한 피드백을 통해 서비스를 한 단계 더 빠르게 진화시킬 수 있습니다.
+            </p>
+          </div>
+
+          <div className="rounded-card border border-border bg-surface p-6 shadow-sm">
+            <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg mb-4">
+              👥
+            </div>
+            <h3 className="text-base font-bold text-foreground mb-2">
+              팀원 모집 및 빌더 네트워킹
+            </h3>
+            <p className="text-xs text-muted leading-relaxed">
+              프론트엔드, 백엔드 개발자, UI/UX 디자이너, 마케터 등 프로젝트를 함께 키워나갈 열정적인 파트너를 찾아보세요.
+            </p>
+          </div>
+        </div>
+
+        {/* FAQ Accordion Section */}
+        <div className="max-w-3xl mx-auto rounded-card border border-border bg-surface p-6 sm:p-8">
+          <h3 className="text-lg font-bold text-foreground mb-4">자주 묻는 질문 (FAQ)</h3>
+          <div className="space-y-4 text-xs sm:text-sm">
+            <details className="group border-b border-border/60 pb-3 cursor-pointer">
+              <summary className="font-semibold text-foreground flex items-center justify-between list-none">
+                <span>Q. zemix에 프로젝트를 등록하는 데 비용이 드나요?</span>
+                <span className="text-muted group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p className="mt-2 text-muted leading-relaxed">
+                아니요, zemix의 프로젝트 등록, 피드백 수집, 팀원 모집, 빌더 프로필 개설 등 모든 핵심 기능은 100% 무료로 제공됩니다.
+              </p>
+            </details>
+
+            <details className="group border-b border-border/60 pb-3 cursor-pointer">
+              <summary className="font-semibold text-foreground flex items-center justify-between list-none">
+                <span>Q. 아직 완성되지 않은 아이디어도 올릴 수 있나요?</span>
+                <span className="text-muted group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p className="mt-2 text-muted leading-relaxed">
+                네! 아이디어 단계(Idea), 현재 개발 중인 상태(Building), 베타 테스트(Beta), 정식 런칭(Public) 등 모든 개발 단계의 프로젝트를 자유롭게 등록하고 의견을 나눌 수 있습니다.
+              </p>
+            </details>
+
+            <details className="group pb-1 cursor-pointer">
+              <summary className="font-semibold text-foreground flex items-center justify-between list-none">
+                <span>Q. 구글 등 검색 엔진에 내 프로젝트가 노출되나요?</span>
+                <span className="text-muted group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p className="mt-2 text-muted leading-relaxed">
+                네, zemix는 고도화된 SEO 최적화와 실시간 sitemap.xml, Schema.org 구조화 데이터를 지원하여 프로젝트를 등록하면 구글봇이 자동으로 크롤링하여 검색 결과에 노출되도록 돕습니다.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

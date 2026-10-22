@@ -16,12 +16,27 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const viewId = searchParams.get("view");
     const currentUserId = searchParams.get("currentUserId") || undefined;
+    const supabase = getSupabase();
     if (viewId) {
       recordSharedProjectView(viewId);
+      if (supabase) {
+        try {
+          const { data: cur } = await (supabase as any)
+            .from("projects")
+            .select("views_count")
+            .eq("id", viewId)
+            .maybeSingle();
+          if (cur) {
+            await (supabase as any)
+              .from("projects")
+              .update({ views_count: (cur.views_count || 0) + 1 })
+              .eq("id", viewId);
+          }
+        } catch (vErr) {
+          console.warn("Supabase view increment warning:", vErr);
+        }
+      }
     }
-
-    // 1. Try Supabase first if connected
-    const supabase = getSupabase();
     if (supabase) {
       try {
         const { data, error } = await supabase

@@ -168,10 +168,22 @@ export async function generateMetadata({
   const title = `${builder.name} (@${builder.handle}) | zemix 빌더`;
   const description =
     builder.bio || `${builder.name}님의 사이드 프로젝트와 제작 스토리를 zemix에서 확인하세요.`;
+  const ogImage = `${SITE_URL}/api/og?title=${encodeURIComponent(builder.name)}&tagline=${encodeURIComponent(builder.bio || "zemix 메이커 프로필")}&maker=${encodeURIComponent(builder.handle)}&type=builder`;
 
   return {
     title,
     description,
+    keywords: [
+      builder.name,
+      builder.handle,
+      builder.role,
+      "zemix",
+      "제믹스",
+      "메이커",
+      "빌더",
+      "인디개발자",
+      "사이드프로젝트",
+    ],
     alternates: {
       canonical: `${SITE_URL}/builders/${builder.id}`,
     },
@@ -181,17 +193,31 @@ export async function generateMetadata({
       url: `${SITE_URL}/builders/${builder.id}`,
       images: [
         {
-          url: builder.avatar || `${SITE_URL}/icon.png`,
-          width: 256,
-          height: 256,
+          url: ogImage,
+          width: 1200,
+          height: 630,
           alt: builder.name,
         },
       ],
     },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
   };
 }
-
-
 
 export function generateStaticParams() {
   return [{ id: "preview" }];
@@ -205,6 +231,10 @@ export default async function BuilderDetailPage({
   const { id } = await params;
   const { builder, projects, posts } = await getBuilderData(id);
 
+  const dynamicOgImage = builder
+    ? `${SITE_URL}/api/og?title=${encodeURIComponent(builder.name)}&tagline=${encodeURIComponent(builder.bio || "zemix 메이커 프로필")}&maker=${encodeURIComponent(builder.handle)}&type=builder`
+    : `${SITE_URL}/og-image.png`;
+
   const jsonLd = builder
     ? {
         "@context": "https://schema.org",
@@ -212,7 +242,7 @@ export default async function BuilderDetailPage({
         name: builder.name,
         alternateName: builder.handle,
         description: builder.bio,
-        image: builder.avatar,
+        image: builder.avatar || dynamicOgImage,
         jobTitle: builder.role,
         url: `${SITE_URL}/builders/${builder.id}`,
         sameAs: [
@@ -222,12 +252,45 @@ export default async function BuilderDetailPage({
       }
     : null;
 
+  const breadcrumbJsonLd = builder
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "zemix 홈",
+            item: SITE_URL,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "빌더들",
+            item: `${SITE_URL}/builders`,
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: builder.name,
+            item: `${SITE_URL}/builders/${builder.id}`,
+          },
+        ],
+      }
+    : null;
+
   return (
     <>
       {jsonLd && (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      {breadcrumbJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
         />
       )}
       <Suspense
