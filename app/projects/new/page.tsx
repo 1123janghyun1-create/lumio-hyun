@@ -279,7 +279,7 @@ export default function NewProjectWizard() {
       coverGradient: draft.coverGradient,
       screenshots: draft.screenshots,
       websiteUrl: draft.website.trim() || "https://zemix.app",
-      demoUrl: draft.demo.trim() || undefined,
+      demoUrl: (draft.demo.trim() && draft.demo.trim() !== draft.website.trim()) ? draft.demo.trim() : undefined,
       githubUrl: draft.github.trim() || undefined,
       teamChat: draft.teamChatUrl.trim()
         ? { platform: draft.teamChatPlatform, url: draft.teamChatUrl.trim() }

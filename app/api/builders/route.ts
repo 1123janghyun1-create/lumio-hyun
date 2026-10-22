@@ -30,6 +30,7 @@ export async function GET(req: Request) {
 
           // 2. Fetch project stats per builder from projects table
           const projectStats = new Map<string, { projectsCount: number; totalLikes: number }>();
+          const projectAuthors = new Map<string, any>();
           try {
             const { data: projData } = await (supabase as any)
               .from("projects")
@@ -42,6 +43,9 @@ export async function GET(req: Request) {
                   stat.projectsCount += 1;
                   stat.totalLikes += (p.likes_count || 0);
                   projectStats.set(uid, stat);
+                  if (p.author && !projectAuthors.has(uid)) {
+                    projectAuthors.set(uid, p.author);
+                  }
                 }
               });
             }
@@ -83,6 +87,28 @@ export async function GET(req: Request) {
                 website: p.website_url,
               },
             };
+          });
+
+          // Also include any project authors who don't have a profile row
+          const profileIdSet = new Set(realProfiles.map((p: any) => p.id));
+          projectAuthors.forEach((author, uid) => {
+            if (!profileIdSet.has(uid) && !uid.startsWith("builder-")) {
+              const stats = projectStats.get(uid) || { projectsCount: 1, totalLikes: 0 };
+              builders.push({
+                id: uid,
+                name: author.name || "Maker",
+                handle: author.handle || "maker",
+                avatar: author.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`,
+                bio: author.bio || "zemix 메이커",
+                role: author.role || "Maker",
+                isStartingMember: author.isStartingMember ?? true,
+                followersCount: author.followersCount || 0,
+                isFollowing: false,
+                projectsCount: stats.projectsCount,
+                totalLikes: stats.totalLikes,
+                socials: author.socials,
+              });
+            }
           });
         }
       } catch (dbErr) {

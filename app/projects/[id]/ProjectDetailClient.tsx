@@ -163,21 +163,28 @@ export default function ProjectDetailClient({
   // Selected screenshot for preview modal
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  const viewRecordedRef = React.useRef(false);
+
   useEffect(() => {
     let mounted = true;
+
+    // Record view exactly once per component lifecycle
+    if (!viewRecordedRef.current) {
+      viewRecordedRef.current = true;
+      recordProjectView(projectId);
+    }
+
     if (!initialProject) {
       const proj = getProjectById(projectId);
       if (proj) {
         setProject(proj);
         setLoading(false);
-        recordProjectView(projectId);
         setFeedbacks(getFeedbacksByProject(projectId));
         setComments(getCommentsByProject(projectId));
         setTimeline(getTimelineByProject(projectId));
         setIsFollowingMaker(isBuilderFollowed(proj.author?.id));
       }
     } else {
-      recordProjectView(projectId);
       setFeedbacks(getFeedbacksByProject(projectId));
       setComments(getCommentsByProject(projectId));
       setTimeline(getTimelineByProject(projectId));
@@ -190,14 +197,24 @@ export default function ProjectDetailClient({
         if (!mounted) return;
         const found = allProjects.find((p) => p.id === projectId);
         if (found) {
-          setProject((prev) => ({
-            ...(prev || {}),
-            ...found,
-            description: found.description || prev?.description || "",
-            demoUrl: found.demoUrl || prev?.demoUrl,
-            teamChat: found.teamChat || prev?.teamChat,
-            stage: found.stage || prev?.stage,
-          }));
+          setProject((prev) => {
+            const isLiked = isProjectLiked(projectId) || prev?.isLiked || found.isLiked || false;
+            const likesCount = Math.max(
+              found.likesCount || 0,
+              prev?.likesCount || 0,
+              isLiked ? 1 : 0
+            );
+            return {
+              ...(prev || {}),
+              ...found,
+              isLiked,
+              likesCount,
+              description: found.description || prev?.description || "",
+              demoUrl: found.demoUrl || prev?.demoUrl,
+              teamChat: found.teamChat || prev?.teamChat,
+              stage: found.stage || prev?.stage,
+            };
+          });
           setIsFollowingMaker(isBuilderFollowed(found.author?.id));
         }
       })
@@ -213,14 +230,24 @@ export default function ProjectDetailClient({
         if (!mounted) return;
         const found = allProjects.find((p) => p.id === projectId);
         if (found) {
-          setProject((prev) => ({
-            ...(prev || {}),
-            ...found,
-            description: found.description || prev?.description || "",
-            demoUrl: found.demoUrl || prev?.demoUrl,
-            teamChat: found.teamChat || prev?.teamChat,
-            stage: found.stage || prev?.stage,
-          }));
+          setProject((prev) => {
+            const isLiked = isProjectLiked(projectId) || prev?.isLiked || found.isLiked || false;
+            const likesCount = Math.max(
+              found.likesCount || 0,
+              prev?.likesCount || 0,
+              isLiked ? 1 : 0
+            );
+            return {
+              ...(prev || {}),
+              ...found,
+              isLiked,
+              likesCount,
+              description: found.description || prev?.description || "",
+              demoUrl: found.demoUrl || prev?.demoUrl,
+              teamChat: found.teamChat || prev?.teamChat,
+              stage: found.stage || prev?.stage,
+            };
+          });
           setIsFollowingMaker(isBuilderFollowed(found.author?.id));
         }
       });
@@ -489,6 +516,28 @@ export default function ProjectDetailClient({
                 <p className="mt-2 max-w-2xl text-[15px] text-muted leading-relaxed">
                   {project.tagline}
                 </p>
+
+                {project.author && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="text-xs text-muted">만든 사람:</span>
+                    <Link
+                      href={`/builders/${project.author.id || project.author.handle || ""}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-muted/60 hover:bg-surface-muted hover:border-primary/40 px-2.5 py-1 text-xs font-medium text-foreground transition-all group"
+                    >
+                      <img
+                        src={project.author.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=maker"}
+                        alt={project.author.name || "Maker"}
+                        className="h-4 w-4 rounded-full object-cover"
+                      />
+                      <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                        {project.author.name || "Maker"}
+                      </span>
+                      <span className="text-[11px] text-muted">
+                        @{project.author.handle || "maker"}
+                      </span>
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -569,7 +618,9 @@ export default function ProjectDetailClient({
               </a>
             )}
 
-            {project.demoUrl && (
+            {project.demoUrl &&
+              project.demoUrl.trim().replace(/\/$/, "").toLowerCase() !==
+                (project.websiteUrl || "").trim().replace(/\/$/, "").toLowerCase() && (
               <a
                 href={project.demoUrl}
                 target="_blank"
@@ -1226,25 +1277,31 @@ export default function ProjectDetailClient({
                     handle: project.author?.handle || "maker",
                     joinedAt: "2026-10-01",
                   },
-                ]).map((c) => (
-                  <div
-                    key={c.id}
-                    className="flex items-center gap-3 rounded-card border border-border bg-surface p-4 shadow-sm"
-                  >
-                    <img
-                      src={c.avatar}
-                      alt={c.name}
-                      className="h-10 w-10 rounded-full border border-border object-cover"
-                    />
-                    <div>
-                      <h4 className="text-xs font-semibold text-foreground">{c.name}</h4>
-                      <p className="text-[11px] text-muted">@{c.handle}</p>
-                      <span className="inline-block rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-medium text-muted mt-1">
-                        {c.role}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                ]).map((c) => {
+                  const targetBuilderId = c.id === "collab-main"
+                    ? (project.author?.id || project.author?.handle || "")
+                    : (c.id || c.handle || "");
+                  return (
+                    <Link
+                      key={c.id}
+                      href={`/builders/${targetBuilderId}`}
+                      className="flex items-center gap-3 rounded-card border border-border bg-surface p-4 shadow-sm hover:border-primary/40 transition-colors group cursor-pointer"
+                    >
+                      <img
+                        src={c.avatar}
+                        alt={c.name}
+                        className="h-10 w-10 rounded-full border border-border object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div>
+                        <h4 className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">{c.name}</h4>
+                        <p className="text-[11px] text-muted">@{c.handle}</p>
+                        <span className="inline-block rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-medium text-muted mt-1">
+                          {c.role}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
 
               {project.lookingForTeam && (
@@ -1273,7 +1330,7 @@ export default function ProjectDetailClient({
               Project Maker
             </p>
             <Link
-              href={`/builders/${project.author?.id || ""}`}
+              href={`/builders/${project.author?.id || project.author?.handle || ""}`}
               className="flex items-center gap-3 group hover:opacity-85 transition-opacity"
             >
               <img

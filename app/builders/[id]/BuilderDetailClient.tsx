@@ -21,24 +21,36 @@ import { useAuth } from "@/context/AuthContext";
 import ProjectCard from "@/components/ProjectCard";
 import { formatRelativeTime } from "@/lib/utils";
 
-export default function BuilderDetailClient({ builderId }: { builderId: string }) {
+export default function BuilderDetailClient({
+  builderId,
+  initialBuilder,
+  initialProjects = [],
+  initialPosts = [],
+}: {
+  builderId: string;
+  initialBuilder?: Builder;
+  initialProjects?: Project[];
+  initialPosts?: CommunityPost[];
+}) {
   const router = useRouter();
   const { user } = useAuth();
 
-  const [builder, setBuilder] = useState<Builder | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
+  const [builder, setBuilder] = useState<Builder | null>(initialBuilder || null);
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(initialPosts);
   const [activeTab, setActiveTab] = useState<"projects" | "community">("projects");
-  const [loading, setLoading] = useState(true);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followersCount, setFollowersCount] = useState(0);
+  const [loading, setLoading] = useState(!initialBuilder);
+  const [isFollowing, setIsFollowing] = useState(initialBuilder?.isFollowing || false);
+  const [followersCount, setFollowersCount] = useState(initialBuilder?.followersCount || 0);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadData() {
       try {
-        setLoading(true);
+        if (!initialBuilder) {
+          setLoading(true);
+        }
         const [allBuilders, allProjects, allPosts] = await Promise.all([
           fetchSharedBuilders(user?.id),
           fetchSharedProjects(user?.id),
@@ -48,9 +60,22 @@ export default function BuilderDetailClient({ builderId }: { builderId: string }
         if (!mounted) return;
 
         // Find matching builder by id or handle
-        const foundBuilder = allBuilders.find(
+        let foundBuilder = allBuilders.find(
           (b) => b.id === builderId || b.handle === builderId
         );
+
+        // If not in allBuilders list, try direct API lookup
+        if (!foundBuilder) {
+          try {
+            const res = await fetch(`/api/builders/${encodeURIComponent(builderId)}`);
+            if (res.ok) {
+              const directData = await res.json();
+              if (directData && directData.id) {
+                foundBuilder = directData;
+              }
+            }
+          } catch {}
+        }
 
         if (foundBuilder) {
           setBuilder(foundBuilder);
@@ -64,7 +89,9 @@ export default function BuilderDetailClient({ builderId }: { builderId: string }
               (p as any).user_id === foundBuilder.id ||
               p.author?.handle === foundBuilder.handle
           );
-          setProjects(userProjects);
+          if (userProjects.length > 0 || initialProjects.length === 0) {
+            setProjects(userProjects);
+          }
 
           // Filter community posts by this builder
           const userPosts = allPosts.filter(
@@ -73,7 +100,14 @@ export default function BuilderDetailClient({ builderId }: { builderId: string }
               (cp as any).author_id === foundBuilder.id ||
               cp.author?.handle === foundBuilder.handle
           );
-          setCommunityPosts(userPosts);
+          if (userPosts.length > 0 || initialPosts.length === 0) {
+            setCommunityPosts(userPosts);
+          }
+        } else if (initialBuilder) {
+          // Keep server-provided initialBuilder
+          setBuilder(initialBuilder);
+          setIsFollowing(initialBuilder.isFollowing || false);
+          setFollowersCount(initialBuilder.followersCount || 0);
         } else if (user && (user.id === builderId || user.handle === builderId)) {
           // If current logged-in user is this builder
           setBuilder(user);
@@ -111,7 +145,7 @@ export default function BuilderDetailClient({ builderId }: { builderId: string }
       mounted = false;
       window.removeEventListener("lumio_data_synced", handleSync);
     };
-  }, [builderId, user]);
+  }, [builderId, user, initialBuilder]);
 
   const handleFollow = () => {
     if (!user) {

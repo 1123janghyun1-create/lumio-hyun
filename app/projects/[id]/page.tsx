@@ -99,6 +99,8 @@ export async function generateMetadata({
   };
 }
 
+
+
 export function generateStaticParams() {
   return [{ id: "preview" }];
 }

@@ -510,6 +510,17 @@ export function toggleProjectLike(projectId: string, userId?: string): { likesCo
 }
 
 export function recordProjectView(projectId: string): void {
+  if (typeof window === "undefined" || !projectId) return;
+
+  // Session deduplication: prevent double count in React StrictMode & rapid refreshes
+  try {
+    const sessionKey = `viewed_proj_${projectId}`;
+    if (sessionStorage.getItem(sessionKey)) {
+      return;
+    }
+    sessionStorage.setItem(sessionKey, "1");
+  } catch {}
+
   const projects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, INITIAL_PROJECTS);
   const updated = projects.map((p) => {
     if (p.id === projectId) {
@@ -519,9 +530,7 @@ export function recordProjectView(projectId: string): void {
   });
   setStoredItem(STORAGE_KEYS.PROJECTS, updated);
 
-  if (typeof window !== "undefined") {
-    fetch(`/api/projects?view=${encodeURIComponent(projectId)}`, { cache: "no-store" }).catch(() => {});
-  }
+  fetch(`/api/projects?view=${encodeURIComponent(projectId)}`, { cache: "no-store" }).catch(() => {});
 }
 
 export function recordProjectOutboundClick(projectId: string): void {

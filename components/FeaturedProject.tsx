@@ -110,7 +110,7 @@ export default function FeaturedProject({ project }: FeaturedProjectProps) {
             </p>
           </div>
 
-          <div className="hidden flex-wrap items-center gap-4 text-sm text-white/90 sm:flex">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-white/90">
             <button
               type="button"
               onClick={handleLike}
@@ -120,28 +120,30 @@ export default function FeaturedProject({ project }: FeaturedProjectProps) {
               <span>{likesCount}</span>
             </button>
 
-            <span className="flex items-center gap-1.5">
+            <span className="hidden sm:flex items-center gap-1.5">
               <Users className="h-4 w-4" />
               <span>{project.followersCount} followers</span>
             </span>
 
-            <span
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                router.push(`/builders/${project.author.id}`);
-              }}
-              className="flex min-w-0 items-center gap-1.5 cursor-pointer hover:underline hover:text-white"
-            >
-              <img
-                src={project.author.avatar}
-                alt={project.author.name}
-                className="h-5 w-5 shrink-0 rounded-full object-cover border border-white/40"
-              />
-              <span className="min-w-0 truncate font-medium">
-                {project.author.name}
+            {project.author && (
+              <span
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  router.push(`/builders/${project.author.id || project.author.handle || ""}`);
+                }}
+                className="flex min-w-0 items-center gap-1.5 cursor-pointer hover:underline hover:text-white"
+              >
+                <img
+                  src={project.author.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=maker"}
+                  alt={project.author.name}
+                  className="h-5 w-5 shrink-0 rounded-full object-cover border border-white/40"
+                />
+                <span className="min-w-0 truncate font-medium">
+                  {project.author.name}
+                </span>
               </span>
-            </span>
+            )}
           </div>
 
           <span className="mt-1 flex w-fit items-center gap-1.5 rounded-[12px] bg-white px-3 py-1.5 text-xs font-semibold text-gray-900 transition-transform duration-200 group-hover:translate-x-0.5 sm:mt-2 sm:px-4 sm:py-2 sm:text-sm">

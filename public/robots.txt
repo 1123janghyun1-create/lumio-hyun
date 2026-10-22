@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /notifications
+Disallow: /profile
+Disallow: /projects/new
+Disallow: /projects/*/edit
+
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+
+User-agent: Googlebot-Image
+Allow: /
+Disallow: /api/
+
+Sitemap: https://zemix.vercel.app/sitemap.xml

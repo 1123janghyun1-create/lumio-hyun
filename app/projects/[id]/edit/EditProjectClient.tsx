@@ -309,7 +309,7 @@ export default function EditProjectClient({ projectId }: { projectId: string }) 
       tags,
       lookingFor,
       websiteUrl: website.trim(),
-      demoUrl: demo.trim() || undefined,
+      demoUrl: (demo.trim() && demo.trim() !== website.trim()) ? demo.trim() : undefined,
       githubUrl: github.trim() || undefined,
       teamChat: teamChatUrl.trim()
         ? { platform: teamChatPlatform, url: teamChatUrl.trim() }

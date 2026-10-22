@@ -270,20 +270,33 @@ export default function BuildersClient({ initialBuilders = [] }: { initialBuilde
             </div>
           ))}
         </div>
+      ) : builders.length > 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center rounded-card border border-dashed border-border bg-surface-muted/20 px-6">
+          <p className="text-sm font-semibold text-foreground">
+            검색 결과와 일치하는 빌더가 없습니다
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            다른 검색어를 입력하거나 역할 필터를 변경해보세요.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery("");
+              setSelectedRole("All");
+            }}
+            className="mt-4 rounded-control border border-border bg-surface px-4 py-2 text-xs font-semibold text-foreground shadow-sm hover:bg-surface-muted transition-colors cursor-pointer"
+          >
+            필터 초기화
+          </button>
+        </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-24 text-center rounded-card border border-dashed border-border bg-surface-muted/20 px-6">
           <p className="text-sm font-semibold text-foreground">
             아직 등록된 빌더가 없습니다
           </p>
           <p className="mt-1 text-xs text-muted">
-            로그인하고 프로젝트를 공유하여 첫 번째 빌더가 되어보세요!
+            프로젝트를 등록한 첫 번째 메이커가 되어보세요!
           </p>
-          <Link
-            href="/login"
-            className="mt-4 rounded-control bg-primary px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover transition-colors"
-          >
-            로그인하기
-          </Link>
         </div>
       )}
     </div>

@@ -90,11 +90,18 @@ export default function ProjectCard({ project, onLikeChanged }: ProjectCardProps
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                router.push(`/builders/${project.author.id}`);
+                router.push(`/builders/${project.author?.id || project.author?.handle || ""}`);
               }}
             >
-              <span className="min-w-0 truncate font-medium hover:underline">{project.author.name}</span>
-              {project.author.isStartingMember && (
+              {project.author?.avatar && (
+                <img
+                  src={project.author.avatar}
+                  alt={project.author.name}
+                  className="h-4 w-4 shrink-0 rounded-full object-cover border border-border"
+                />
+              )}
+              <span className="min-w-0 truncate font-medium hover:underline">{project.author?.name || "Maker"}</span>
+              {project.author?.isStartingMember && (
                 <span className="rounded-full border border-border bg-surface-muted px-1.5 py-0.5 text-[9px] font-medium leading-none text-muted">
                   Starting Member
                 </span>
@@ -205,7 +212,7 @@ export default function ProjectCard({ project, onLikeChanged }: ProjectCardProps
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              router.push(`/builders/${project.author.id}`);
+              router.push(`/builders/${project.author?.id || project.author?.handle || ""}`);
             }}
           >
             <div className="flex shrink-0">
