@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Heart, Users, ArrowUpRight } from "lucide-react";
 import { Project } from "@/lib/types";
-import { toggleProjectLike } from "@/lib/storage";
+import { toggleProjectLike, isProjectLiked } from "@/lib/storage";
 import { useAuth } from "@/context/AuthContext";
 
 interface FeaturedProjectProps {
@@ -16,12 +16,24 @@ export default function FeaturedProject({ project }: FeaturedProjectProps) {
   const router = useRouter();
   const { user } = useAuth();
   const [likesCount, setLikesCount] = useState(project.likesCount);
-  const [isLiked, setIsLiked] = useState(project.isLiked || false);
+  const [isLiked, setIsLiked] = useState(() => isProjectLiked(project.id) || project.isLiked || false);
 
   useEffect(() => {
     setLikesCount(project.likesCount);
-    setIsLiked(project.isLiked || false);
-  }, [project.likesCount, project.isLiked]);
+    const storedLiked = isProjectLiked(project.id);
+    setIsLiked(storedLiked || project.isLiked || false);
+  }, [project.id, project.likesCount, project.isLiked]);
+
+  useEffect(() => {
+    const handleLikeEvent = (e: any) => {
+      if (e.detail?.projectId === project.id) {
+        setLikesCount(e.detail.likesCount);
+        setIsLiked(e.detail.isLiked);
+      }
+    };
+    window.addEventListener("lumio_like_changed", handleLikeEvent);
+    return () => window.removeEventListener("lumio_like_changed", handleLikeEvent);
+  }, [project.id]);
 
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -114,9 +126,11 @@ export default function FeaturedProject({ project }: FeaturedProjectProps) {
             <button
               type="button"
               onClick={handleLike}
-              className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer"
+              className={`flex items-center gap-1.5 transition-colors cursor-pointer ${
+                isLiked ? "text-rose-400 font-semibold" : "text-white/90 hover:text-white"
+              }`}
             >
-              <Heart className={`h-4 w-4 ${isLiked ? "fill-danger text-danger" : ""}`} />
+              <Heart className={`h-4 w-4 ${isLiked ? "fill-rose-500 text-rose-500" : ""}`} />
               <span>{likesCount}</span>
             </button>
 

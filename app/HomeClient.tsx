@@ -12,7 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 
 export default function HomeClient({ initialProjects = [] }: { initialProjects?: Project[] }) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,18 +89,18 @@ export default function HomeClient({ initialProjects = [] }: { initialProjects?:
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
               <span>zemix</span>
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                사이드 프로젝트 메이커 커뮤니티
+                {t("hero.badge")}
               </span>
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-muted">
-              아이디어를 실제로 빌드하고 런칭하는 메이커들을 위한 공간. 초기 유저 피드백과 함께 성장할 동료를 만나보세요.
+              {t("hero.tagline")}
             </p>
           </div>
           <Link
             href="/about"
             className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline self-start sm:self-auto shrink-0"
           >
-            zemix 소개 및 개발자 이야기 →
+            {t("hero.banner")}
           </Link>
         </div>
       </section>
@@ -160,7 +160,7 @@ export default function HomeClient({ initialProjects = [] }: { initialProjects?:
             {t("all.title")}
           </p>
           <span className="text-xs text-muted">
-            {sortedProjects.length}개의 프로젝트
+            {language === "ko" ? `${sortedProjects.length}개의 프로젝트` : `${sortedProjects.length} projects`}
           </span>
         </div>
 
@@ -184,23 +184,23 @@ export default function HomeClient({ initialProjects = [] }: { initialProjects?:
               <HexagonLogo className="h-6 w-6 text-foreground" strokeWidth={2.2} />
             </div>
             <h3 className="text-base font-bold text-foreground">
-              새로운 사이드 프로젝트를 기다리고 있습니다
+              {t("empty.noProjects")}
             </h3>
             <p className="mt-1.5 max-w-sm text-xs text-muted leading-relaxed">
-              zemix는 사이드 프로젝트를 런칭하고 피드백과 동료를 구하는 메이커 커뮤니티입니다. 지금 첫 프로젝트를 등록해보세요.
+              {t("empty.registerFirst")}
             </p>
             <Link
               href="/projects/new"
               className="mt-5 inline-flex items-center gap-2 rounded-control bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover transition-colors"
             >
               <Plus className="h-4 w-4" />
-              첫 프로젝트 등록하기
+              {t("btn.newProject")}
             </Link>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center rounded-[16px] border border-dashed border-border bg-surface-muted/30">
             <p className="text-sm font-medium text-muted">
-              검색 조건에 일치하는 프로젝트가 없습니다.
+              {language === "ko" ? "검색 조건에 일치하는 프로젝트가 없습니다." : "No projects match your search criteria."}
             </p>
             <button
               onClick={() => {
@@ -209,7 +209,7 @@ export default function HomeClient({ initialProjects = [] }: { initialProjects?:
               }}
               className="mt-3 text-xs font-semibold text-primary hover:underline cursor-pointer"
             >
-              필터 초기화
+              {language === "ko" ? "필터 초기화" : "Reset Filters"}
             </button>
           </div>
         )}

@@ -43,7 +43,7 @@ const CATEGORIES = [
 function CommunityContent({ initialPosts = [] }: { initialPosts?: CommunityPost[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   const [posts, setPosts] = useState<CommunityPost[]>(initialPosts);
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -375,7 +375,7 @@ function CommunityContent({ initialPosts = [] }: { initialPosts?: CommunityPost[
                   <span className="text-xs text-muted-foreground">
                     {formatRelativeTime(post.createdAt)}
                   </span>
-                  {user && (user.id === post.author.id || user.handle === post.author.handle) && (
+                  {user && (user.id === post.author.id || user.handle === post.author.handle || isAdmin) && (
                     <button
                       type="button"
                       onClick={(e) => handleDeletePost(post, e)}
@@ -430,10 +430,10 @@ function CommunityContent({ initialPosts = [] }: { initialPosts?: CommunityPost[
                     type="button"
                     onClick={(e) => handleLikePost(post.id, e)}
                     className={`flex items-center gap-1 cursor-pointer transition-colors ${
-                      post.isLiked ? "text-danger" : "hover:text-foreground"
+                      post.isLiked ? "text-rose-500 font-semibold" : "hover:text-foreground"
                     }`}
                   >
-                    <Heart className={`h-3.5 w-3.5 ${post.isLiked ? "fill-danger" : ""}`} />
+                    <Heart className={`h-3.5 w-3.5 ${post.isLiked ? "fill-rose-500 text-rose-500" : ""}`} />
                     <span>{post.likesCount || 0}</span>
                   </button>
 
@@ -487,7 +487,7 @@ function CommunityContent({ initialPosts = [] }: { initialPosts?: CommunityPost[
                 >
                   <Share2 className="h-4 w-4" />
                 </button>
-                {user && (user.id === selectedPost.author.id || user.handle === selectedPost.author.handle) && (
+                {user && (user.id === selectedPost.author.id || user.handle === selectedPost.author.handle || isAdmin) && (
                   <button
                     type="button"
                     onClick={() => handleDeletePost(selectedPost)}
@@ -562,11 +562,11 @@ function CommunityContent({ initialPosts = [] }: { initialPosts?: CommunityPost[
                   onClick={() => handleLikePost(selectedPost.id)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-control transition-colors cursor-pointer ${
                     selectedPost.isLiked
-                      ? "bg-danger-soft text-danger font-semibold border border-danger/20"
+                      ? "bg-rose-500/10 text-rose-500 font-semibold border border-rose-500/30"
                       : "hover:bg-surface-muted text-muted hover:text-foreground border border-border"
                   }`}
                 >
-                  <Heart className={`h-4 w-4 ${selectedPost.isLiked ? "fill-danger" : ""}`} />
+                  <Heart className={`h-4 w-4 ${selectedPost.isLiked ? "fill-rose-500 text-rose-500" : ""}`} />
                   <span>좋아요</span>
                   <span className="font-semibold">{selectedPost.likesCount || 0}</span>
                 </button>
@@ -649,7 +649,8 @@ function CommunityContent({ initialPosts = [] }: { initialPosts?: CommunityPost[
                             </span>
                             {user &&
                               (user.id === comment.userId ||
-                                (comment as any).author?.id === user.id) && (
+                                (comment as any).author?.id === user.id ||
+                                isAdmin) && (
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteComment(comment.id)}

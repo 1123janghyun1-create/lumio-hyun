@@ -7,6 +7,7 @@ import ProjectCard from "@/components/ProjectCard";
 import { Project } from "@/lib/types";
 import { getProjects, fetchSharedProjects } from "@/lib/storage";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 
 const CATEGORIES = [
   "All",
@@ -32,6 +33,7 @@ const STATUSES = [
 
 export default function ExploreClient({ initialProjects = [] }: { initialProjects?: Project[] }) {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -97,10 +99,12 @@ export default function ExploreClient({ initialProjects = [] }: { initialProject
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          탐색 (Explore)
+          {language === "ko" ? "탐색 (Explore)" : "Explore Projects"}
         </h1>
         <p className="mt-1.5 text-sm text-muted">
-          다양한 카테고리의 흥미로운 사이드 프로젝트를 둘러보고 피드백을 남겨보세요.
+          {language === "ko"
+            ? "다양한 카테고리의 흥미로운 사이드 프로젝트를 둘러보고 피드백을 남겨보세요."
+            : "Discover fresh side projects across various tech domains and share your valuable feedback."}
         </p>
       </div>
 
@@ -109,7 +113,11 @@ export default function ExploreClient({ initialProjects = [] }: { initialProject
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
-          placeholder="프로젝트명, 설명, 태그, 메이커 이름으로 검색..."
+          placeholder={
+            language === "ko"
+              ? "프로젝트명, 설명, 태그, 메이커 이름으로 검색..."
+              : "Search by project name, description, tags, builder..."
+          }
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full rounded-[12px] border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-colors duration-200 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
@@ -118,9 +126,11 @@ export default function ExploreClient({ initialProjects = [] }: { initialProject
 
       {/* Bootcamp & Cohort Collection Pills */}
       <div className="mb-4 flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-        <span className="font-semibold text-muted text-[11px] shrink-0">🎓 데모데이 쇼케이스 관:</span>
+        <span className="font-semibold text-muted text-[11px] shrink-0">
+          {language === "ko" ? "🎓 데모데이 쇼케이스 관:" : "🎓 Demo Day Showcase:"}
+        </span>
         {[
-          { label: "전체", tag: "All" },
+          { label: language === "ko" ? "전체" : "All", tag: "All" },
           { label: "🦁 멋쟁이사자처럼 12기", tag: "LikeLion" },
           { label: "🚀 디프만 15기", tag: "Depromeet" },
           { label: "⚡ 스파르타 수료전", tag: "Sparta" },

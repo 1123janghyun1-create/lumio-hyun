@@ -7,6 +7,8 @@ export interface Builder {
   avatar: string;
   bio: string;
   role: string;
+  email?: string;
+  isAdmin?: boolean;
   isStartingMember?: boolean;
   isFoundingMember?: boolean;
   projectsCount?: number;

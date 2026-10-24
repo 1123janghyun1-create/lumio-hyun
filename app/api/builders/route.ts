@@ -219,8 +219,9 @@ export async function POST(req: Request) {
           avatar_url: builder.avatar,
           bio: builder.bio,
           role: builder.role,
-          github_url: builder.socials?.github,
-          website_url: builder.socials?.website,
+          github_url: builder.socials?.github ?? null,
+          twitter_url: builder.socials?.twitter ?? null,
+          website_url: builder.socials?.website ?? null,
           updated_at: new Date().toISOString(),
         });
       }

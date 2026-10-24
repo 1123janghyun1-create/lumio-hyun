@@ -4,8 +4,10 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Trophy, Medal, Flame, Heart, Eye, ArrowUpRight, Sparkles, Crown } from "lucide-react";
 import { Project } from "@/lib/types";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function LeaderboardPage() {
+  const { language } = useLanguage();
   const [projects, setProjects] = useState<Project[]>([]);
   const [period, setPeriod] = useState<"weekly" | "monthly" | "allTime">("weekly");
   const [loading, setLoading] = useState(true);
@@ -61,13 +63,15 @@ export default function LeaderboardPage() {
       <div className="text-center max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-semibold mb-3 border border-amber-500/20">
           <Trophy className="h-3.5 w-3.5" />
-          <span>Hall of Fame • 명예의 전당</span>
+          <span>{language === "ko" ? "Hall of Fame • 명예의 전당" : "Hall of Fame • Top Projects"}</span>
         </div>
         <h1 className="text-3xl md:text-5xl font-black text-foreground tracking-tight">
-          주간 & 월간 명예의 전당
+          {language === "ko" ? "주간 & 월간 명예의 전당" : "Weekly & Monthly Leaderboard"}
         </h1>
         <p className="text-xs md:text-sm text-muted mt-2">
-          빌더 커뮤니티에서 가장 많은 응원과 사랑을 받은 최고의 사이드 프로젝트를 소개합니다.
+          {language === "ko"
+            ? "빌더 커뮤니티에서 가장 많은 응원과 사랑을 받은 최고의 사이드 프로젝트를 소개합니다."
+            : "Discover the top-voted side projects created by passionate indie makers."}
         </p>
 
         {/* Period Switcher */}
@@ -80,7 +84,7 @@ export default function LeaderboardPage() {
                 : "text-muted hover:text-foreground"
             }`}
           >
-            이번 주 랭킹 🔥
+            {language === "ko" ? "이번 주 랭킹 🔥" : "This Week 🔥"}
           </button>
           <button
             onClick={() => setPeriod("monthly")}
@@ -90,7 +94,7 @@ export default function LeaderboardPage() {
                 : "text-muted hover:text-foreground"
             }`}
           >
-            이번 달 랭킹 ⭐
+            {language === "ko" ? "이번 달 랭킹 ⭐" : "This Month ⭐"}
           </button>
           <button
             onClick={() => setPeriod("allTime")}
@@ -100,7 +104,7 @@ export default function LeaderboardPage() {
                 : "text-muted hover:text-foreground"
             }`}
           >
-            역대 명예의 전당 👑
+            {language === "ko" ? "역대 명예의 전당 👑" : "All Time 👑"}
           </button>
         </div>
       </div>

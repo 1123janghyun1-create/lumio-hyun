@@ -8,6 +8,7 @@ import { GithubIcon } from "@/components/Icons";
 import { Builder } from "@/lib/types";
 import { getBuilders, toggleFollowBuilder, fetchSharedBuilders } from "@/lib/storage";
 import { useAuth } from "@/context/AuthContext";
+import { isUserAdmin } from "@/lib/auth";
 
 export default function BuildersClient({ initialBuilders = [] }: { initialBuilders?: Builder[] }) {
   const router = useRouter();
@@ -187,7 +188,12 @@ export default function BuildersClient({ initialBuilders = [] }: { initialBuilde
                       <h3 className="text-base font-bold text-foreground truncate hover:text-primary transition-colors">
                         {builder.name}
                       </h3>
-                      {builder.isStartingMember && (
+                      {isUserAdmin(builder) && (
+                        <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                          👑 관리자
+                        </span>
+                      )}
+                      {builder.isStartingMember && !isUserAdmin(builder) && (
                         <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent border border-accent/20">
                           스타팅 멤버
                         </span>

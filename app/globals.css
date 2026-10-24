@@ -197,6 +197,11 @@
   color: var(--danger);
 }
 
+.fill-danger,
+.fill-rose {
+  fill: var(--danger) !important;
+}
+
 .border-border {
   border-color: var(--border);
 }

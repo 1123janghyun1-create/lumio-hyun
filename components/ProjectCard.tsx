@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Heart, MessageCircle, Users } from "lucide-react";
 import { Project } from "@/lib/types";
-import { toggleProjectLike } from "@/lib/storage";
+import { toggleProjectLike, isProjectLiked } from "@/lib/storage";
 import { useAuth } from "@/context/AuthContext";
 
 interface ProjectCardProps {
@@ -17,12 +17,24 @@ export default function ProjectCard({ project, onLikeChanged }: ProjectCardProps
   const router = useRouter();
   const { user } = useAuth();
   const [likesCount, setLikesCount] = useState(project.likesCount);
-  const [isLiked, setIsLiked] = useState(project.isLiked || false);
+  const [isLiked, setIsLiked] = useState(() => isProjectLiked(project.id) || project.isLiked || false);
 
   useEffect(() => {
     setLikesCount(project.likesCount);
-    setIsLiked(project.isLiked || false);
-  }, [project.likesCount, project.isLiked]);
+    const storedLiked = isProjectLiked(project.id);
+    setIsLiked(storedLiked || project.isLiked || false);
+  }, [project.id, project.likesCount, project.isLiked]);
+
+  useEffect(() => {
+    const handleLikeEvent = (e: any) => {
+      if (e.detail?.projectId === project.id) {
+        setLikesCount(e.detail.likesCount);
+        setIsLiked(e.detail.isLiked);
+      }
+    };
+    window.addEventListener("lumio_like_changed", handleLikeEvent);
+    return () => window.removeEventListener("lumio_like_changed", handleLikeEvent);
+  }, [project.id]);
 
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -112,10 +124,10 @@ export default function ProjectCard({ project, onLikeChanged }: ProjectCardProps
                 type="button"
                 onClick={handleLike}
                 className={`flex shrink-0 items-center gap-1 cursor-pointer transition-colors ${
-                  isLiked ? "text-danger" : "hover:text-foreground"
+                  isLiked ? "text-rose-500 font-semibold" : "text-muted hover:text-foreground"
                 }`}
               >
-                <Heart className={`h-3 w-3 ${isLiked ? "fill-danger" : ""}`} />
+                <Heart className={`h-3 w-3 ${isLiked ? "fill-rose-500 text-rose-500" : ""}`} />
                 <span>{likesCount}</span>
               </button>
               <span className="flex shrink-0 items-center gap-1">
@@ -239,10 +251,10 @@ export default function ProjectCard({ project, onLikeChanged }: ProjectCardProps
                 type="button"
                 onClick={handleLike}
                 className={`flex items-center gap-1 transition-colors cursor-pointer ${
-                  isLiked ? "text-danger" : "hover:text-foreground"
+                  isLiked ? "text-rose-500 font-semibold" : "hover:text-foreground"
                 }`}
               >
-                <Heart className={`h-3.5 w-3.5 ${isLiked ? "fill-danger" : ""}`} />
+                <Heart className={`h-3.5 w-3.5 ${isLiked ? "fill-rose-500 text-rose-500" : ""}`} />
                 <span>{likesCount}</span>
               </button>
 

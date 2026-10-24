@@ -86,6 +86,7 @@ export async function syncAllWithServer(): Promise<void> {
     // Resilient Projects sync
     if (pRes.status === "fulfilled" && Array.isArray(pRes.value)) {
       const localProjects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, []);
+      const likedIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_PROJECT_IDS, []);
       const map = new Map<string, Project>();
       localProjects.forEach((p) => map.set(p.id, p));
 
@@ -93,10 +94,12 @@ export async function syncAllWithServer(): Promise<void> {
       pRes.value.forEach((sp: Project) => {
         serverIds.add(sp.id);
         const existing = map.get(sp.id);
+        const isLiked = likedIds.includes(sp.id) || existing?.isLiked || sp.isLiked || false;
         map.set(sp.id, {
           ...existing,
           ...sp,
-          likesCount: Math.max(existing?.likesCount ?? 0, sp.likesCount ?? 0),
+          isLiked,
+          likesCount: Math.max(existing?.likesCount ?? 0, sp.likesCount ?? 0, isLiked ? 1 : 0),
           viewsCount: Math.max(existing?.viewsCount ?? 0, sp.viewsCount ?? 0),
           commentsCount: Math.max(existing?.commentsCount ?? 0, sp.commentsCount ?? 0),
           feedbacksCount: Math.max(existing?.feedbacksCount ?? 0, sp.feedbacksCount ?? 0),
@@ -127,6 +130,7 @@ export async function syncAllWithServer(): Promise<void> {
     // Resilient Community sync
     if (cRes.status === "fulfilled" && Array.isArray(cRes.value)) {
       const localPosts = getStoredItem<CommunityPost[]>(STORAGE_KEYS.COMMUNITY, []);
+      const likedCommunityIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_COMMUNITY_IDS, []);
       const map = new Map<string, CommunityPost>();
       localPosts.forEach((p) => map.set(p.id, p));
 
@@ -134,10 +138,12 @@ export async function syncAllWithServer(): Promise<void> {
       cRes.value.forEach((sp: CommunityPost) => {
         serverIds.add(sp.id);
         const existing = map.get(sp.id);
+        const isLiked = likedCommunityIds.includes(sp.id) || existing?.isLiked || sp.isLiked || false;
         map.set(sp.id, {
           ...existing,
           ...sp,
-          likesCount: Math.max(existing?.likesCount ?? 0, sp.likesCount ?? 0),
+          isLiked,
+          likesCount: Math.max(existing?.likesCount ?? 0, sp.likesCount ?? 0, isLiked ? 1 : 0),
           commentsCount: Math.max(existing?.commentsCount ?? 0, sp.commentsCount ?? 0),
         });
       });
@@ -174,6 +180,7 @@ export async function fetchSharedProjects(currentUserId?: string): Promise<Proje
       const data = await res.json();
       if (Array.isArray(data)) {
         const localProjects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, []);
+        const likedIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_PROJECT_IDS, []);
         const map = new Map<string, Project>();
         localProjects.forEach((p) => map.set(p.id, p));
 
@@ -181,10 +188,12 @@ export async function fetchSharedProjects(currentUserId?: string): Promise<Proje
         data.forEach((sp: Project) => {
           serverIds.add(sp.id);
           const existing = map.get(sp.id);
+          const isLiked = likedIds.includes(sp.id) || existing?.isLiked || sp.isLiked || false;
           map.set(sp.id, {
             ...existing,
             ...sp,
-            likesCount: Math.max(existing?.likesCount ?? 0, sp.likesCount ?? 0),
+            isLiked,
+            likesCount: Math.max(existing?.likesCount ?? 0, sp.likesCount ?? 0, isLiked ? 1 : 0),
             viewsCount: Math.max(existing?.viewsCount ?? 0, sp.viewsCount ?? 0),
             commentsCount: Math.max(existing?.commentsCount ?? 0, sp.commentsCount ?? 0),
             feedbacksCount: Math.max(existing?.feedbacksCount ?? 0, sp.feedbacksCount ?? 0),
@@ -205,7 +214,6 @@ export async function fetchSharedProjects(currentUserId?: string): Promise<Proje
         const merged = Array.from(map.values());
         setStoredItem(STORAGE_KEYS.PROJECTS, merged);
 
-        const likedIds = getStoredItem<string[]>(STORAGE_KEYS.LIKED_PROJECT_IDS, []);
         const serverLikedIds = data.filter((p: any) => p.isLiked).map((p: any) => p.id);
         const mergedLiked = Array.from(new Set([...likedIds, ...serverLikedIds]));
         setStoredItem(STORAGE_KEYS.LIKED_PROJECT_IDS, mergedLiked);
@@ -478,6 +486,15 @@ export function toggleProjectLike(projectId: string, userId?: string): { likesCo
     setStoredItem(STORAGE_KEYS.PROJECTS, updatedProjects);
   }
 
+  // Dispatch instant event for active cards & detail pages
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("lumio_like_changed", {
+        detail: { projectId, likesCount: newLikesCount, isLiked: nextLiked },
+      })
+    );
+  }
+
   // Sync to server
   if (typeof window !== "undefined") {
     fetch("/api/projects", {
@@ -488,18 +505,15 @@ export function toggleProjectLike(projectId: string, userId?: string): { likesCo
       .then((r) => r.json())
       .then((data) => {
         if (data && typeof data.likesCount === "number") {
+          const curLiked = getStoredItem<string[]>(STORAGE_KEYS.LIKED_PROJECT_IDS, []);
+          const isNowLiked = curLiked.includes(projectId);
+          const finalCount = Math.max(data.likesCount, isNowLiked ? 1 : 0);
+
           const curProjects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, []);
           const synced = curProjects.map((p) =>
-            p.id === projectId ? { ...p, likesCount: data.likesCount, isLiked: data.isLiked } : p
+            p.id === projectId ? { ...p, likesCount: finalCount, isLiked: isNowLiked } : p
           );
           setStoredItem(STORAGE_KEYS.PROJECTS, synced);
-
-          const curLiked = getStoredItem<string[]>(STORAGE_KEYS.LIKED_PROJECT_IDS, []);
-          const updatedCurLiked = data.isLiked
-            ? Array.from(new Set([...curLiked, projectId]))
-            : curLiked.filter((id) => id !== projectId);
-          setStoredItem(STORAGE_KEYS.LIKED_PROJECT_IDS, updatedCurLiked);
-
           window.dispatchEvent(new CustomEvent("lumio_data_synced"));
         }
       })
@@ -862,18 +876,15 @@ export function toggleCommunityLike(postId: string, userId?: string): { likesCou
       .then((r) => r.json())
       .then((data) => {
         if (data && typeof data.likesCount === "number") {
+          const curLiked = getStoredItem<string[]>(STORAGE_KEYS.LIKED_COMMUNITY_IDS, []);
+          const isNowLiked = curLiked.includes(postId);
+          const finalCount = Math.max(data.likesCount, isNowLiked ? 1 : 0);
+
           const curPosts = getStoredItem<CommunityPost[]>(STORAGE_KEYS.COMMUNITY, []);
           const synced = curPosts.map((p) =>
-            p.id === postId ? { ...p, likesCount: data.likesCount, isLiked: data.isLiked } : p
+            p.id === postId ? { ...p, likesCount: finalCount, isLiked: isNowLiked } : p
           );
           setStoredItem(STORAGE_KEYS.COMMUNITY, synced);
-
-          const curLiked = getStoredItem<string[]>(STORAGE_KEYS.LIKED_COMMUNITY_IDS, []);
-          const updatedCurLiked = data.isLiked
-            ? Array.from(new Set([...curLiked, postId]))
-            : curLiked.filter((id) => id !== postId);
-          setStoredItem(STORAGE_KEYS.LIKED_COMMUNITY_IDS, updatedCurLiked);
-
           window.dispatchEvent(new CustomEvent("lumio_data_synced"));
         }
       })

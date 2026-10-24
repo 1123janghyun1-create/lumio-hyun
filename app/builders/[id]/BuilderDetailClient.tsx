@@ -20,6 +20,7 @@ import { GithubIcon, TwitterIcon } from "@/components/Icons";
 import { Builder, Project, CommunityPost } from "@/lib/types";
 import { fetchSharedBuilders, fetchSharedProjects, fetchSharedCommunityPosts, toggleFollowBuilder } from "@/lib/storage";
 import { useAuth } from "@/context/AuthContext";
+import { isUserAdmin } from "@/lib/auth";
 import ProjectCard from "@/components/ProjectCard";
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -226,7 +227,12 @@ export default function BuilderDetailClient({
                 <h1 className="text-xl sm:text-2xl font-bold text-foreground">
                   {builder.name}
                 </h1>
-                {builder.isStartingMember && (
+                {isUserAdmin(builder) && (
+                  <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                    👑 관리자 (Admin)
+                  </span>
+                )}
+                {builder.isStartingMember && !isUserAdmin(builder) && (
                   <span className="rounded-full border border-border bg-surface-muted px-2.5 py-0.5 text-[10px] font-semibold text-muted">
                     Starting Member
                   </span>
