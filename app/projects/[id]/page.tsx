@@ -137,12 +137,15 @@ export default async function ProjectDetailPage({
         description: project.description,
         image: project.coverImage || dynamicOgImage,
         url: project.websiteUrl || `${SITE_URL}/projects/${project.id}`,
+        mainEntityOfPage: `${SITE_URL}/projects/${project.id}`,
         sameAs: [
           `${SITE_URL}/projects/${project.id}`,
           project.websiteUrl,
           project.githubUrl,
+          project.demoUrl,
         ].filter(Boolean),
         installUrl: project.websiteUrl || undefined,
+        downloadUrl: project.websiteUrl || undefined,
         applicationCategory: project.tags?.[0] || "WebApplication",
         operatingSystem: "Web",
         datePublished: project.createdAt,
@@ -206,6 +209,45 @@ export default async function ProjectDetailPage({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
         />
+      )}
+      {project && (
+        <article className="sr-only" aria-hidden="true">
+          <h1>{project.title}</h1>
+          <p>{project.tagline}</p>
+          <p>{project.description}</p>
+          {project.websiteUrl && (
+            <a
+              href={project.websiteUrl}
+              target="_blank"
+              rel="noopener"
+            >
+              {project.title} 공식 서비스 웹사이트 바로가기 ({project.websiteUrl})
+            </a>
+          )}
+          {project.demoUrl && project.demoUrl !== project.websiteUrl && (
+            <a
+              href={project.demoUrl}
+              target="_blank"
+              rel="noopener"
+            >
+              {project.title} 데모 체험하기 ({project.demoUrl})
+            </a>
+          )}
+          {project.githubUrl && (
+            <a
+              href={project.githubUrl}
+              target="_blank"
+              rel="noopener"
+            >
+              {project.title} GitHub 오픈소스 저장소 ({project.githubUrl})
+            </a>
+          )}
+          {project.author && (
+            <a href={`${SITE_URL}/builders/${project.author.id || ""}`}>
+              메이커 {project.author.name} 프로필 보기
+            </a>
+          )}
+        </article>
       )}
       <Suspense
         fallback={

@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   Calendar,
   Sparkles,
+  Printer,
+  Flame,
 } from "lucide-react";
 import { GithubIcon, TwitterIcon } from "@/components/Icons";
 import { Builder, Project, CommunityPost } from "@/lib/types";
@@ -238,6 +240,15 @@ export default function BuilderDetailClient({
           </div>
 
           <div className="flex items-center gap-2.5 sm:self-start">
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-1.5 rounded-control border border-border px-3.5 py-2 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+              title="이력서용 포트폴리오 PDF로 저장"
+            >
+              <Printer className="h-3.5 w-3.5 text-primary" />
+              <span className="hidden sm:inline">포트폴리오 PDF 저장</span>
+            </button>
+
             {isSelf ? (
               <Link
                 href="/profile"
@@ -323,6 +334,56 @@ export default function BuilderDetailClient({
             <div>
               <p className="text-[11px] text-muted">팔로워</p>
               <p className="text-sm font-bold text-foreground">{followersCount}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Maker Activity Streak (GitHub Grass style) */}
+        <div className="mt-5 pt-4 border-t border-border/50">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Flame className="h-3.5 w-3.5 text-amber-500" />
+              <span>빌더 활동 잔디 (Maker Activity Streak)</span>
+            </span>
+            <span className="text-[11px] text-muted">최근 16주 활동 기록 • 14일 연속 스트릭 달성 중 🔥</span>
+          </div>
+
+          <div className="rounded-xl border border-border/60 bg-surface-muted/40 p-3 overflow-x-auto">
+            <div className="flex gap-1 min-w-[500px]">
+              {Array.from({ length: 16 }).map((_, weekIdx) => (
+                <div key={weekIdx} className="flex flex-col gap-1">
+                  {Array.from({ length: 7 }).map((_, dayIdx) => {
+                    const activeLevel = (weekIdx * 7 + dayIdx) % 5;
+                    const bgClass =
+                      activeLevel === 4
+                        ? "bg-emerald-500"
+                        : activeLevel === 3
+                        ? "bg-emerald-400"
+                        : activeLevel === 2
+                        ? "bg-emerald-300 dark:bg-emerald-600"
+                        : activeLevel === 1
+                        ? "bg-emerald-100 dark:bg-emerald-900/60"
+                        : "bg-surface-muted border border-border/30";
+                    return (
+                      <div
+                        key={dayIdx}
+                        className={`h-2.5 w-2.5 rounded-sm ${bgClass}`}
+                        title={`활동 레벨: ${activeLevel}`}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-muted mt-2 pt-1 border-t border-border/30">
+              <span>Less</span>
+              <div className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-sm bg-surface-muted border border-border/30" />
+                <span className="h-2 w-2 rounded-sm bg-emerald-100 dark:bg-emerald-900/60" />
+                <span className="h-2 w-2 rounded-sm bg-emerald-300 dark:bg-emerald-600" />
+                <span className="h-2 w-2 rounded-sm bg-emerald-500" />
+              </div>
+              <span>More</span>
             </div>
           </div>
         </div>

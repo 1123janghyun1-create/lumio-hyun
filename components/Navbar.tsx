@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Search, Bell, Sun, Moon, Plus, User as UserIcon, LogOut } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Search, Bell, Sun, Moon, Plus, User as UserIcon, LogOut, Dices, Trophy, Rocket, Lightbulb } from "lucide-react";
 import { HexagonLogo } from "@/components/Icons";
 import { useTheme } from "@/context/ThemeContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -11,22 +11,45 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isRolling, setIsRolling] = useState(false);
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
+  const handleRandomProject = async () => {
+    if (isRolling) return;
+    setIsRolling(true);
+    try {
+      const res = await fetch("/api/projects");
+      const data = await res.json();
+      const list = data.projects || (Array.isArray(data) ? data : []);
+      if (list && list.length > 0) {
+        const randomProj = list[Math.floor(Math.random() * list.length)];
+        router.push(`/projects/${randomProj.id}`);
+      } else {
+        router.push("/explore");
+      }
+    } catch {
+      router.push("/explore");
+    } finally {
+      setTimeout(() => setIsRolling(false), 600);
+    }
+  };
+
   const navItems = [
     { label: t("nav.explore"), href: "/explore" },
-    { label: t("nav.activity"), href: "/activity" },
+    { label: "🚀 런칭 D-Day", href: "/upcoming" },
+    { label: "🏆 명예의 전당", href: "/leaderboard" },
     { label: t("nav.builders"), href: "/builders" },
+    { label: "💡 아이디어", href: "/ideas" },
     { label: t("nav.community"), href: "/community" },
-    { label: t("nav.about"), href: "/about" },
   ];
 
   return (
@@ -64,10 +87,21 @@ export default function Navbar() {
 
         {/* Right Actions */}
         <div className="ml-auto flex items-center gap-2">
+          {/* I'm Feeling Lucky (Random Project) */}
+          <button
+            type="button"
+            onClick={handleRandomProject}
+            title="오늘의 랜덤 탐험 (I'm Feeling Lucky)"
+            className="flex h-9 w-9 items-center justify-center rounded-[12px] text-muted transition-all duration-200 hover:bg-primary-soft hover:text-primary cursor-pointer group"
+          >
+            <Dices className={`h-[18px] w-[18px] transition-transform duration-500 ${isRolling ? "rotate-180 scale-110 text-primary" : "group-hover:rotate-45"}`} />
+          </button>
+
           {/* Search */}
           <Link
             href="/search"
             aria-label="Search"
+            title="검색 (Cmd+K)"
             className="flex h-9 w-9 items-center justify-center rounded-[12px] text-muted transition-colors duration-200 hover:bg-surface-muted hover:text-foreground"
           >
             <Search className="h-[18px] w-[18px]" />

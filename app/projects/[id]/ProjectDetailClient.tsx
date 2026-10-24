@@ -24,8 +24,28 @@ import {
   Trash2,
   Play,
   MessageCircle,
+  Smartphone,
+  Award,
+  Image as ImageIcon,
+  Bot,
+  Zap,
+  Languages,
+  Coffee,
+  Gift,
+  History,
+  BarChart3,
+  Check,
 } from "lucide-react";
 import { GithubIcon } from "@/components/Icons";
+import BadgeModal from "@/components/project-tools/BadgeModal";
+import SandboxModal from "@/components/project-tools/SandboxModal";
+import CardNewsModal from "@/components/project-tools/CardNewsModal";
+import AiLaunchWriterModal from "@/components/project-tools/AiLaunchWriterModal";
+import SeoAuditModal from "@/components/project-tools/SeoAuditModal";
+import CoffeeChatModal from "@/components/project-tools/CoffeeChatModal";
+import ChangelogTab from "@/components/project-tools/ChangelogTab";
+import PollAndMetricsTab from "@/components/project-tools/PollAndMetricsTab";
+import ProjectCard from "@/components/ProjectCard";
 import {
   getProjects,
   getProjectById,
@@ -55,7 +75,7 @@ import { useAuth } from "@/context/AuthContext";
 import { formatRelativeTime } from "@/lib/utils";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 
-type TabType = "overview" | "feedback" | "comments" | "timeline" | "insights" | "collaborators";
+type TabType = "overview" | "feedback" | "changelog" | "polls" | "comments" | "timeline" | "insights" | "collaborators";
 
 const STAGE_LABELS: Record<string, { label: string; badgeClass: string; desc: string }> = {
   idea: {
@@ -164,6 +184,18 @@ export default function ProjectDetailClient({
   // Selected screenshot for preview modal
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  // Power Tool Modals
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [showSandboxModal, setShowSandboxModal] = useState(false);
+  const [showCardNewsModal, setShowCardNewsModal] = useState(false);
+  const [showAiLaunchModal, setShowAiLaunchModal] = useState(false);
+  const [showSeoModal, setShowSeoModal] = useState(false);
+  const [showCoffeeChatModal, setShowCoffeeChatModal] = useState(false);
+  const [isEnglish, setIsEnglish] = useState(false);
+  const [isAnonymousFeedback, setIsAnonymousFeedback] = useState(false);
+  const [bugDeviceInfo, setBugDeviceInfo] = useState("Chrome (Desktop)");
+  const [relatedProjects, setRelatedProjects] = useState<Project[]>([]);
+
   const viewRecordedRef = React.useRef(false);
 
   useEffect(() => {
@@ -197,6 +229,7 @@ export default function ProjectDetailClient({
     fetchSharedProjects(user?.id)
       .then((allProjects) => {
         if (!mounted) return;
+        setRelatedProjects(allProjects.filter((p) => p.id !== projectId).slice(0, 3));
         const found = allProjects.find((p) => p.id === projectId);
         if (found) {
           setProject((prev) => {
@@ -316,6 +349,19 @@ export default function ProjectDetailClient({
     setProject((prev) => (prev ? { ...prev, likesCount: result.likesCount, isLiked: result.isLiked } : null));
   };
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      if (e.key.toLowerCase() === "l" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        handleLike();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [project, user]);
+
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
@@ -380,20 +426,27 @@ export default function ProjectDetailClient({
     }
     if (!feedbackTitle.trim() || !feedbackDesc.trim()) return;
 
+    const finalDesc = feedbackType === "bug" && bugDeviceInfo
+      ? `[기기/환경: ${bugDeviceInfo}]\n${feedbackDesc}`
+      : feedbackDesc;
+
     const created = addFeedback({
       projectId: project.id,
-      userId: user.id,
-      userName: user.name,
-      userAvatar: user.avatar,
+      userId: isAnonymousFeedback ? "anon" : user.id,
+      userName: isAnonymousFeedback ? "익명의 빌더 🕵️" : user.name,
+      userAvatar: isAnonymousFeedback
+        ? "https://api.dicebear.com/7.x/identicon/svg?seed=" + Date.now()
+        : user.avatar,
       type: feedbackType,
       title: feedbackTitle,
-      description: feedbackDesc,
+      description: finalDesc,
       status: "Open",
     });
 
     setFeedbacks([created, ...feedbacks]);
     setFeedbackTitle("");
     setFeedbackDesc("");
+    setIsAnonymousFeedback(false);
     setShowFeedbackModal(false);
   };
 
@@ -451,12 +504,14 @@ export default function ProjectDetailClient({
   };
 
   const tabs = [
-    { key: "overview", label: "Overview" },
-    { key: "feedback", label: `Feedback (${feedbacks.length})` },
-    { key: "comments", label: `Comments (${comments.length})` },
-    { key: "timeline", label: `Timeline (${timeline.length})` },
-    { key: "insights", label: "Insights" },
-    { key: "collaborators", label: "Collaborators" },
+    { key: "overview", label: "소개 (Overview)" },
+    { key: "feedback", label: `피드백 (${feedbacks.length})` },
+    { key: "changelog", label: "📜 체인지로그" },
+    { key: "polls", label: "📊 설문 & 오픈통계" },
+    { key: "comments", label: `댓글 (${comments.length})` },
+    { key: "timeline", label: `타임라인 (${timeline.length})` },
+    { key: "insights", label: "인사이트" },
+    { key: "collaborators", label: "팀원" },
   ];
 
   const stageKey = project?.stage || (project?.status === "MVP" ? "idea" : project?.status === "Beta" ? "beta" : "public");
@@ -526,7 +581,9 @@ export default function ProjectDetailClient({
                   {project.title}
                 </h1>
                 <p className="mt-2 max-w-2xl text-[15px] text-muted leading-relaxed">
-                  {project.tagline}
+                  {isEnglish
+                    ? `[EN Translated] ${project.tagline}`
+                    : project.tagline}
                 </p>
 
                 {project.author && (
@@ -555,6 +612,20 @@ export default function ProjectDetailClient({
 
             {/* Action Buttons */}
             <div className="flex shrink-0 items-center gap-2 flex-wrap">
+              {project.websiteUrl && (
+                <a
+                  href={project.websiteUrl}
+                  target="_blank"
+                  rel="noopener"
+                  onClick={() => recordProjectOutboundClick(project.id)}
+                  className="flex items-center gap-1.5 rounded-[12px] bg-primary px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 transition-colors cursor-pointer"
+                >
+                  <Globe className="h-4 w-4" />
+                  <span>웹사이트 방문</span>
+                  <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+                </a>
+              )}
+
               <button
                 type="button"
                 onClick={handleLike}
@@ -691,6 +762,65 @@ export default function ProjectDetailClient({
                 zemix/go/{project.id}
               </code>
             </div>
+
+            {/* Power Tools Row */}
+            <div className="w-full flex flex-wrap items-center gap-2 pt-2 border-t border-border/40">
+              {project.websiteUrl && (
+                <button
+                  type="button"
+                  onClick={() => setShowSandboxModal(true)}
+                  className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+                >
+                  <Smartphone className="h-3.5 w-3.5 text-purple-500" />
+                  <span>인앱 미리보기</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowBadgeModal(true)}
+                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+              >
+                <Award className="h-3.5 w-3.5 text-amber-500" />
+                <span>뱃지 발급</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowCardNewsModal(true)}
+                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+              >
+                <ImageIcon className="h-3.5 w-3.5 text-rose-500" />
+                <span>SNS 카드뉴스</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAiLaunchModal(true)}
+                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+              >
+                <Bot className="h-3.5 w-3.5 text-sky-500" />
+                <span>AI 런칭글</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowSeoModal(true)}
+                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+              >
+                <Zap className="h-3.5 w-3.5 text-emerald-500" />
+                <span>SEO 진단</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsEnglish(!isEnglish)}
+                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+              >
+                <Languages className="h-3.5 w-3.5 text-primary" />
+                <span>{isEnglish ? "한국어 원문" : "🌐 EN 번역"}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -730,7 +860,9 @@ export default function ProjectDetailClient({
                   <span>프로젝트 상세 소개</span>
                 </h3>
                 <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground font-normal">
-                  {project.description || project.tagline}
+                  {isEnglish
+                    ? `[English Translation]\n\n${project.title} is an innovative software project showcased on zemix.\n\n${project.description || project.tagline}`
+                    : (project.description || project.tagline)}
                 </div>
               </div>
 
@@ -926,7 +1058,10 @@ export default function ProjectDetailClient({
                             alt={fb.userName}
                             className="h-4 w-4 rounded-full object-cover"
                           />
-                          <span>{fb.userName}</span>
+                          <span className="font-medium text-foreground">{fb.userName}</span>
+                          <span className="inline-flex items-center rounded-full bg-amber-500/10 text-amber-500 px-1.5 py-0.2 text-[10px] font-semibold border border-amber-500/20">
+                            🌟 Top Reviewer
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -937,6 +1072,20 @@ export default function ProjectDetailClient({
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* TAB: CHANGELOG */}
+          {activeTab === "changelog" && (
+            <div className="animate-fade-in">
+              <ChangelogTab isOwner={isOwner} />
+            </div>
+          )}
+
+          {/* TAB: POLLS & METRICS */}
+          {activeTab === "polls" && (
+            <div className="animate-fade-in">
+              <PollAndMetricsTab project={project} />
             </div>
           )}
 
@@ -1366,7 +1515,7 @@ export default function ProjectDetailClient({
               {project.author?.bio || "zemix 메이커"}
             </p>
 
-            <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+            <div className="mt-4 pt-3 border-t border-border flex flex-col gap-2">
               <button
                 type="button"
                 onClick={handleToggleFollow}
@@ -1378,7 +1527,32 @@ export default function ProjectDetailClient({
               >
                 {isFollowingMaker ? "팔로잉 중" : "+ 팔로우"}
               </button>
+              <button
+                type="button"
+                onClick={() => setShowCoffeeChatModal(true)}
+                className="w-full rounded-control border border-border bg-surface-muted/50 py-1.5 text-xs font-semibold text-foreground hover:bg-surface-muted transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Coffee className="h-3.5 w-3.5 text-amber-500" />
+                <span>빌더와 15분 커피챗</span>
+              </button>
             </div>
+          </div>
+
+          {/* User Interview & Tester Recruitment Card */}
+          <div className="rounded-card border border-primary/20 bg-primary-soft/30 p-4 text-xs space-y-2">
+            <div className="flex items-center gap-1.5 text-primary font-bold">
+              <Coffee className="h-4 w-4" />
+              <span>사용자 인터뷰 참여자 모집</span>
+            </div>
+            <p className="text-[11px] text-muted leading-relaxed">
+              서비스를 10분 체험하고 간단한 피드백을 주실 테스터를 모집합니다. (참여 시 스타벅스 기프티콘 증정 ☕)
+            </p>
+            <button
+              onClick={() => alert("빌더에게 사용자 인터뷰 지원 의사를 전달했습니다!")}
+              className="w-full rounded-xl bg-primary py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover transition-colors cursor-pointer"
+            >
+              인터뷰 참여 신청하기
+            </button>
           </div>
 
           {/* Project Details Box */}
@@ -1422,6 +1596,28 @@ export default function ProjectDetailClient({
           </div>
         </div>
       </div>
+
+      {/* AI Recommended Similar Projects */}
+      {relatedProjects.length > 0 && (
+        <div className="mt-14 pt-8 border-t border-border">
+          <div className="flex items-center gap-2 mb-5">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-soft text-primary">
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <div>
+              <h3 className="text-base md:text-lg font-bold text-foreground">
+                이 프로젝트를 본 분들이 함께 발견한 추천 서비스
+              </h3>
+              <p className="text-xs text-muted">비슷한 관심사의 인기 사이드 프로젝트를 둘러보세요.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+            {relatedProjects.map((p) => (
+              <ProjectCard key={p.id} project={p} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* FEEDBACK MODAL */}
       {showFeedbackModal && (
@@ -1481,6 +1677,38 @@ export default function ProjectDetailClient({
                   onChange={(e) => setFeedbackDesc(e.target.value)}
                   className="w-full rounded-control border border-border bg-surface p-2 text-xs text-foreground focus:border-primary focus:outline-none"
                 />
+              </div>
+
+              {feedbackType === "bug" && (
+                <div>
+                  <label className="text-xs font-semibold text-muted block mb-1">
+                    🐛 발생 기기 및 환경 (QA 디바이스)
+                  </label>
+                  <select
+                    value={bugDeviceInfo}
+                    onChange={(e) => setBugDeviceInfo(e.target.value)}
+                    className="w-full rounded-control border border-border bg-surface p-2 text-xs text-foreground focus:border-primary focus:outline-none"
+                  >
+                    <option value="Chrome (Desktop)">Chrome (PC 데스크탑)</option>
+                    <option value="Safari (macOS)">Safari (Mac)</option>
+                    <option value="iOS Safari (iPhone)">iOS Safari (아이폰)</option>
+                    <option value="Android Chrome (Galaxy)">Android Chrome (갤럭시)</option>
+                    <option value="Edge / 기타">Edge / 기타 브라우저</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="anonymousFeedback"
+                  checked={isAnonymousFeedback}
+                  onChange={(e) => setIsAnonymousFeedback(e.target.checked)}
+                  className="rounded border-border text-primary focus:ring-primary cursor-pointer"
+                />
+                <label htmlFor="anonymousFeedback" className="text-xs text-muted cursor-pointer select-none">
+                  익명으로 솔직하게 남기기 (내 프로필 비공개 🕵️)
+                </label>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -1587,6 +1815,46 @@ export default function ProjectDetailClient({
           />
         </div>
       )}
+
+      {/* 6 POWER TOOL MODALS */}
+      <BadgeModal
+        isOpen={showBadgeModal}
+        onClose={() => setShowBadgeModal(false)}
+        projectId={project.id}
+        projectTitle={project.title}
+      />
+
+      <SandboxModal
+        isOpen={showSandboxModal}
+        onClose={() => setShowSandboxModal(false)}
+        websiteUrl={project.websiteUrl}
+        projectTitle={project.title}
+      />
+
+      <CardNewsModal
+        isOpen={showCardNewsModal}
+        onClose={() => setShowCardNewsModal(false)}
+        project={project}
+      />
+
+      <AiLaunchWriterModal
+        isOpen={showAiLaunchModal}
+        onClose={() => setShowAiLaunchModal(false)}
+        project={project}
+      />
+
+      <SeoAuditModal
+        isOpen={showSeoModal}
+        onClose={() => setShowSeoModal(false)}
+        project={project}
+      />
+
+      <CoffeeChatModal
+        isOpen={showCoffeeChatModal}
+        onClose={() => setShowCoffeeChatModal(false)}
+        builder={project.author}
+        projectTitle={project.title}
+      />
 
       {/* CONFIRM DELETE MODAL */}
       <ConfirmDeleteModal

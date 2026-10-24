@@ -35,6 +35,9 @@ export interface FeedbackItem {
   status: "Open" | "In Review" | "Planned" | "Completed" | "Declined";
   createdAt: string;
   commentsCount: number;
+  isAnonymous?: boolean;
+  deviceInfo?: string;
+  isTopReviewer?: boolean;
 }
 
 export interface CommentItem {
@@ -112,6 +115,44 @@ export interface Project {
   teamChat?: { platform: string; url: string };
   collaborators?: Collaborator[];
   insights?: ProjectInsight;
+  changelog?: { version: string; date: string; content: string }[];
+  earlyBirdCoupon?: { code: string; discount: string; description: string };
+  donationUrl?: string;
+  polls?: { question: string; options: { text: string; votes: number }[]; userVotedIndex?: number };
+  openMetrics?: { mrr?: string; mau?: string; totalUsers?: string };
+  hiringRoles?: string[];
+  isUpcoming?: boolean;
+  launchDate?: string;
+  subscribersCount?: number;
+}
+
+export interface UpcomingProject {
+  id: string;
+  title: string;
+  tagline: string;
+  description: string;
+  logo: string;
+  coverImage?: string;
+  targetLaunchDate: string; // ISO date string e.g. "2026-11-05"
+  daysLeft: number;
+  author: Builder;
+  tags: string[];
+  subscribersCount: number;
+  isSubscribed?: boolean;
+  previewUrl?: string;
+}
+
+export interface ShelvedIdea {
+  id: string;
+  title: string;
+  summary: string;
+  reasonShelved: string;
+  recommendedStack: string[];
+  githubUrl?: string;
+  author: Builder;
+  createdAt: string;
+  forksCount: number;
+  isForked?: boolean;
 }
 
 export interface CommunityPost {

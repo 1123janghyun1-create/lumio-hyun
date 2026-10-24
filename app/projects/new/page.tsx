@@ -417,6 +417,35 @@ export default function NewProjectWizard() {
               </p>
             </div>
 
+            {/* AI Smart Fill Assistant */}
+            <div className="rounded-xl border border-primary/30 bg-primary-soft/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white shrink-0">
+                  <Sparkles className="h-4 w-4" />
+                </span>
+                <div>
+                  <span className="text-xs font-bold text-foreground">AI 스마트 요약 & 태그 자동 완성</span>
+                  <p className="text-[11px] text-muted">프로젝트 이름만 넣고 클릭하면 AI가 매력적인 한 줄 소개와 설명, 추천 태그를 채워줍니다.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const currentName = draft.name.trim() || "Awesome Project";
+                  updateDraft({
+                    name: currentName,
+                    tagline: draft.tagline || `${currentName} - 세상을 더 편리하게 만드는 혁신적인 사이드 프로젝트`,
+                    description: draft.description || `${currentName}은 사용자의 일상을 개선하기 위해 정성껏 개발된 최신 웹앱입니다. 복잡한 과정 없이 웹에서 바로 동작하며, 초기 피드백을 환영합니다.`,
+                    tags: draft.tags.length > 0 ? draft.tags : ["AI", "SaaS", "Productivity"],
+                  });
+                }}
+                className="shrink-0 flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover transition-colors cursor-pointer shadow-sm"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>AI로 자동 채우기</span>
+              </button>
+            </div>
+
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
                 프로젝트 이름 <span className="text-danger">*</span>

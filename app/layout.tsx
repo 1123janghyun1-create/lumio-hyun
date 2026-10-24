@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import MobileHeader from "@/components/MobileHeader";
 import MobileNav from "@/components/MobileNav";
 import Footer from "@/components/Footer";
+import GlobalShortcuts from "@/components/GlobalShortcuts";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ||
@@ -239,6 +240,7 @@ export default function RootLayout({
                 <Footer />
                 <Suspense fallback={null}>
                   <MobileNav />
+                  <GlobalShortcuts />
                 </Suspense>
               </div>
             </AuthProvider>

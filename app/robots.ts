@@ -13,7 +13,18 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
+        allow: [
+          "/",
+          "/projects/",
+          "/explore",
+          "/leaderboard",
+          "/upcoming",
+          "/ideas",
+          "/builders/",
+          "/community",
+          "/about",
+          "/go/",
+        ],
         disallow: [
           "/api/",
           "/auth/",
@@ -25,12 +36,23 @@ export default function robots(): MetadataRoute.Robots {
       },
       {
         userAgent: "Googlebot",
-        allow: "/",
+        allow: [
+          "/",
+          "/projects/",
+          "/explore",
+          "/leaderboard",
+          "/upcoming",
+          "/ideas",
+          "/builders/",
+          "/community",
+          "/about",
+          "/go/",
+        ],
         disallow: ["/api/", "/auth/"],
       },
       {
         userAgent: "Googlebot-Image",
-        allow: "/",
+        allow: ["/", "/projects/", "/og-image.png", "/icon.png"],
         disallow: ["/api/"],
       },
     ],

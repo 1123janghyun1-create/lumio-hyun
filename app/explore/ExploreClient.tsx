@@ -116,6 +116,33 @@ export default function ExploreClient({ initialProjects = [] }: { initialProject
         />
       </div>
 
+      {/* Bootcamp & Cohort Collection Pills */}
+      <div className="mb-4 flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+        <span className="font-semibold text-muted text-[11px] shrink-0">🎓 데모데이 쇼케이스 관:</span>
+        {[
+          { label: "전체", tag: "All" },
+          { label: "🦁 멋쟁이사자처럼 12기", tag: "LikeLion" },
+          { label: "🚀 디프만 15기", tag: "Depromeet" },
+          { label: "⚡ 스파르타 수료전", tag: "Sparta" },
+          { label: "🎓 대학생 졸작/토이", tag: "Student" },
+        ].map((cohort) => (
+          <button
+            key={cohort.label}
+            onClick={() => {
+              if (cohort.tag === "All") {
+                setSearchQuery("");
+                setSelectedCategory("All");
+              } else {
+                setSearchQuery(cohort.label.split(" ")[1] || cohort.tag);
+              }
+            }}
+            className="rounded-lg border border-border bg-surface-muted/60 px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-primary-soft hover:text-primary transition-colors shrink-0 cursor-pointer"
+          >
+            {cohort.label}
+          </button>
+        ))}
+      </div>
+
       {/* Category Pills */}
       <div className="mb-4 flex flex-wrap gap-2">
         {CATEGORIES.map((cat) => {
