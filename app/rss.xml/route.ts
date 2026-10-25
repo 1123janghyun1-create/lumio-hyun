@@ -56,7 +56,8 @@ export async function GET() {
       <title>${escapeXml(p.title)} - ${escapeXml(p.tagline || "")}</title>
       <link>${SITE_URL}/projects/${p.id}</link>
       <guid>${SITE_URL}/projects/${p.id}</guid>
-      <description>${escapeXml(p.description || p.tagline || p.title)}</description>
+      ${p.websiteUrl ? `<source url="${escapeXml(p.websiteUrl)}">${escapeXml(p.title)} 공식 서비스 웹사이트</source>` : ""}
+      <description>${escapeXml(p.description || p.tagline || p.title)}${p.websiteUrl ? ` - 공식 웹사이트: ${escapeXml(p.websiteUrl)}` : ""}</description>
       <pubDate>${new Date(p.createdAt).toUTCString()}</pubDate>
       <author>${escapeXml(p.author?.name || "zemix 메이커")}</author>
     </item>`

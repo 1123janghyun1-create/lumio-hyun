@@ -15,10 +15,21 @@ import {
   Sparkles,
   Printer,
   Flame,
+  UserX,
+  Trash2,
+  ShieldAlert,
 } from "lucide-react";
 import { GithubIcon, TwitterIcon } from "@/components/Icons";
 import { Builder, Project, CommunityPost } from "@/lib/types";
-import { fetchSharedBuilders, fetchSharedProjects, fetchSharedCommunityPosts, toggleFollowBuilder } from "@/lib/storage";
+import {
+  fetchSharedBuilders,
+  fetchSharedProjects,
+  fetchSharedCommunityPosts,
+  toggleFollowBuilder,
+  banUser,
+  unbanUser,
+  deleteBuilder,
+} from "@/lib/storage";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/auth";
 import ProjectCard from "@/components/ProjectCard";
@@ -36,7 +47,7 @@ export default function BuilderDetailClient({
   initialPosts?: CommunityPost[];
 }) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   const [builder, setBuilder] = useState<Builder | null>(initialBuilder || null);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
@@ -45,6 +56,32 @@ export default function BuilderDetailClient({
   const [loading, setLoading] = useState(!initialBuilder);
   const [isFollowing, setIsFollowing] = useState(initialBuilder?.isFollowing || false);
   const [followersCount, setFollowersCount] = useState(initialBuilder?.followersCount || 0);
+
+  const handleToggleBan = () => {
+    if (!isAdmin || !builder) return;
+    const nextStatus = !builder.isBanned;
+    const actionText = nextStatus ? "밴(활동 정지)" : "밴 해제";
+    if (confirm(`'${builder.name}' (@${builder.handle}) 메이커를 ${actionText} 처리하시겠습니까?`)) {
+      if (nextStatus) {
+        banUser(builder.id);
+      } else {
+        unbanUser(builder.id);
+      }
+      setBuilder((prev) => (prev ? { ...prev, isBanned: nextStatus } : null));
+    }
+  };
+
+  const handleKickBuilder = async () => {
+    if (!isAdmin || !builder) return;
+    if (
+      confirm(
+        `[경고] '${builder.name}' (@${builder.handle}) 사용자를 강제 추방(영구 삭제)하시겠습니까?\n프로필 데이터가 완전히 삭제되며 되돌릴 수 없습니다.`
+      )
+    ) {
+      await deleteBuilder(builder.id);
+      router.push("/builders");
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -213,6 +250,13 @@ export default function BuilderDetailClient({
         </Link>
       </div>
 
+      {builder.isBanned && (
+        <div className="mb-6 rounded-card border border-danger/30 bg-danger-soft p-4 flex items-center gap-3 text-xs text-danger font-semibold">
+          <ShieldAlert className="h-5 w-5 shrink-0" />
+          <span>이 사용자는 관리자에 의해 활동이 정지(밴)된 상태입니다. 프로젝트 등록 및 커뮤니티 작성이 제한됩니다.</span>
+        </div>
+      )}
+
       {/* Builder Profile Header Card */}
       <div className="rounded-card border border-border bg-surface p-6 sm:p-8 shadow-card mb-8">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
@@ -227,6 +271,11 @@ export default function BuilderDetailClient({
                 <h1 className="text-xl sm:text-2xl font-bold text-foreground">
                   {builder.name}
                 </h1>
+                {builder.isBanned && (
+                  <span className="rounded-full bg-danger-soft border border-danger/30 px-2.5 py-0.5 text-[10px] font-bold text-danger">
+                    🚫 정지됨
+                  </span>
+                )}
                 {isUserAdmin(builder) && (
                   <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
                     👑 관리자 (Admin)
@@ -263,17 +312,45 @@ export default function BuilderDetailClient({
                 내 프로필 수정
               </Link>
             ) : (
-              <button
-                type="button"
-                onClick={handleFollow}
-                className={`rounded-control px-5 py-2 text-xs font-semibold transition-colors cursor-pointer shadow-sm ${
-                  isFollowing
-                    ? "bg-surface-muted text-muted hover:text-foreground border border-border"
-                    : "bg-primary text-primary-foreground hover:bg-primary-hover"
-                }`}
-              >
-                {isFollowing ? "팔로잉 중" : "+ 팔로우"}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleFollow}
+                  className={`rounded-control px-5 py-2 text-xs font-semibold transition-colors cursor-pointer shadow-sm ${
+                    isFollowing
+                      ? "bg-surface-muted text-muted hover:text-foreground border border-border"
+                      : "bg-primary text-primary-foreground hover:bg-primary-hover"
+                  }`}
+                >
+                  {isFollowing ? "팔로잉 중" : "+ 팔로우"}
+                </button>
+                {isAdmin && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleToggleBan}
+                      className={`rounded-control px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm ${
+                        builder.isBanned
+                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30"
+                          : "bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 border border-amber-500/30"
+                      }`}
+                      title="사용자 밴 / 해제 (Admin)"
+                    >
+                      <UserX className="h-3.5 w-3.5" />
+                      <span>{builder.isBanned ? "밴 해제" : "계정 밴"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleKickBuilder}
+                      className="rounded-control px-3.5 py-2 text-xs font-semibold text-danger bg-danger-soft hover:bg-danger/20 border border-danger/30 transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+                      title="사용자 강제 추방 (영구 삭제)"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>강제 추방</span>
+                    </button>
+                  </>
+                )}
+              </>
             )}
 
             {builder.socials?.github && (

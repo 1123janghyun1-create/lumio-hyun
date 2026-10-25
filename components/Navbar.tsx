@@ -61,7 +61,6 @@ export default function Navbar() {
 
   const navItems = [
     { label: t("nav.explore"), href: "/explore", icon: Compass },
-    { label: t("nav.upcoming"), href: "/upcoming", icon: Rocket },
     { label: t("nav.leaderboard"), href: "/leaderboard", icon: Trophy },
     { label: t("nav.builders"), href: "/builders", icon: Users },
     { label: t("nav.ideas"), href: "/ideas", icon: Lightbulb },
@@ -90,7 +89,7 @@ export default function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13.5px] font-medium transition-all duration-150 ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13.5px] font-medium whitespace-nowrap transition-all duration-150 ${
                   isActive
                     ? "bg-surface-muted text-foreground font-semibold shadow-xs"
                     : "text-muted hover:bg-surface-muted/60 hover:text-foreground"
@@ -215,6 +214,16 @@ export default function Navbar() {
                   </div>
                   
                   <div className="py-1">
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2 rounded-control px-3 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 mb-1 transition-colors"
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        <span>관리자 센터 (Admin)</span>
+                      </Link>
+                    )}
                     <Link
                       href="/profile"
                       onClick={() => setShowUserMenu(false)}

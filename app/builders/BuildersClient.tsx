@@ -3,19 +3,49 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Globe, Users, Layers } from "lucide-react";
+import { Search, Globe, Users, Layers, UserX, Trash2 } from "lucide-react";
 import { GithubIcon } from "@/components/Icons";
 import { Builder } from "@/lib/types";
-import { getBuilders, toggleFollowBuilder, fetchSharedBuilders } from "@/lib/storage";
+import { getBuilders, toggleFollowBuilder, fetchSharedBuilders, banUser, unbanUser, deleteBuilder } from "@/lib/storage";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/auth";
 
 export default function BuildersClient({ initialBuilders = [] }: { initialBuilders?: Builder[] }) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [builders, setBuilders] = useState<Builder[]>(initialBuilders);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState("All");
+
+  const handleToggleBan = (builder: Builder, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAdmin) return;
+    const nextStatus = !builder.isBanned;
+    const actionText = nextStatus ? "밴(활동 정지)" : "밴 해제";
+    if (confirm(`'${builder.name}' (@${builder.handle}) 메이커를 ${actionText} 처리하시겠습니까?`)) {
+      if (nextStatus) {
+        banUser(builder.id);
+      } else {
+        unbanUser(builder.id);
+      }
+      setBuilders((prev) =>
+        prev.map((b) => (b.id === builder.id ? { ...b, isBanned: nextStatus } : b))
+      );
+    }
+  };
+
+  const handleKickBuilder = async (builder: Builder, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAdmin) return;
+    if (
+      confirm(
+        `[경고] '${builder.name}' (@${builder.handle}) 사용자를 강제 추방(영구 삭제)하시겠습니까?\n이 작업은 취소할 수 없습니다.`
+      )
+    ) {
+      await deleteBuilder(builder.id);
+      setBuilders((prev) => prev.filter((b) => b.id !== builder.id));
+    }
+  };
 
   const loadAllBuilders = async () => {
     const shared = await fetchSharedBuilders(user?.id);
@@ -188,6 +218,11 @@ export default function BuildersClient({ initialBuilders = [] }: { initialBuilde
                       <h3 className="text-base font-bold text-foreground truncate hover:text-primary transition-colors">
                         {builder.name}
                       </h3>
+                      {builder.isBanned && (
+                        <span className="shrink-0 rounded-full bg-danger-soft px-2 py-0.5 text-[10px] font-bold text-danger border border-danger/30">
+                          🚫 정지됨
+                        </span>
+                      )}
                       {isUserAdmin(builder) && (
                         <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30">
                           👑 관리자
@@ -272,6 +307,32 @@ export default function BuildersClient({ initialBuilders = [] }: { initialBuilde
                     </a>
                   )}
                 </div>
+
+                {isAdmin && builder.id !== user?.id && (
+                  <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border/60" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleBan(builder, e)}
+                      className={`flex-1 rounded-lg py-1 px-2 text-[11px] font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1 ${
+                        builder.isBanned
+                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30"
+                          : "bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 border border-amber-500/30"
+                      }`}
+                    >
+                      <UserX className="h-3 w-3" />
+                      <span>{builder.isBanned ? "밴 해제" : "계정 밴"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleKickBuilder(builder, e)}
+                      className="rounded-lg py-1 px-2.5 text-[11px] font-semibold text-danger bg-danger-soft hover:bg-danger/20 border border-danger/30 transition-colors cursor-pointer flex items-center gap-1"
+                      title="사용자 강제 추방 (영구 삭제)"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      <span>강제 추방</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -117,6 +117,26 @@ export default function NewProjectWizard() {
     }
   }, [loading, user, router]);
 
+  if (user?.isBanned) {
+    return (
+      <div className="mx-auto max-w-lg px-6 py-28 text-center animate-fade-in">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-danger-soft text-danger mb-4">
+          <X className="h-7 w-7" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">활동이 정지된 계정입니다</h2>
+        <p className="mt-2 text-xs text-muted leading-relaxed">
+          관리자에 의해 커뮤니티 정책 위반으로 계정이 밴(정지) 처리되어 새로운 프로젝트를 등록할 수 없습니다.
+        </p>
+        <button
+          onClick={() => router.push("/")}
+          className="mt-6 rounded-control bg-surface-muted px-4 py-2 text-xs font-semibold text-foreground hover:bg-surface border border-border cursor-pointer"
+        >
+          홈으로 돌아가기
+        </button>
+      </div>
+    );
+  }
+
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);

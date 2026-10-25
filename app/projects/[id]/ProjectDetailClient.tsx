@@ -130,7 +130,7 @@ export default function ProjectDetailClient({
   projectId: string;
   initialProject?: Project;
 }) {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const router = useRouter();
 
   const [project, setProject] = useState<Project | null>(() => {
@@ -393,7 +393,7 @@ export default function ProjectDetailClient({
   };
 
   const isOwner = Boolean(
-    user && project && (user.id === project.author.id || user.handle === project.author.handle)
+    user && project && (user.id === project.author?.id || user.handle === project.author?.handle || isAdmin)
   );
 
   const handleConfirmDelete = () => {
@@ -422,6 +422,10 @@ export default function ProjectDetailClient({
       if (confirm("피드백을 작성하려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
         router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       }
+      return;
+    }
+    if (user.isBanned) {
+      alert("관리자에 의해 계정이 밴(정지)되었습니다. 피드백을 작성할 수 없습니다.");
       return;
     }
     if (!feedbackTitle.trim() || !feedbackDesc.trim()) return;
@@ -469,6 +473,10 @@ export default function ProjectDetailClient({
       if (confirm("댓글을 남기려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
         router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       }
+      return;
+    }
+    if (user.isBanned) {
+      alert("관리자에 의해 계정이 밴(정지)되었습니다. 댓글을 작성할 수 없습니다.");
       return;
     }
     if (!newComment.trim()) return;
@@ -631,11 +639,11 @@ export default function ProjectDetailClient({
                 onClick={handleLike}
                 className={`flex items-center gap-1.5 rounded-[12px] border px-3.5 py-2.5 text-sm font-semibold transition-colors duration-200 cursor-pointer ${
                   project.isLiked
-                    ? "border-danger text-danger bg-danger-soft"
+                    ? "border-rose-500/40 text-rose-500 bg-rose-500/10 shadow-sm"
                     : "border-border text-muted hover:bg-surface-muted hover:text-foreground"
                 }`}
               >
-                <Heart className={`h-4 w-4 ${project.isLiked ? "fill-danger" : ""}`} />
+                <Heart className={`h-4 w-4 ${project.isLiked ? "fill-rose-500 text-rose-500" : ""}`} />
                 <span>{project.likesCount}</span>
               </button>
 

@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
-import { getSharedBuilders, getSharedFollows, upsertSharedBuilder, toggleSharedBuilderFollow } from "@/lib/serverStore";
+import {
+  getSharedBuilders,
+  getSharedFollows,
+  upsertSharedBuilder,
+  toggleSharedBuilderFollow,
+  deleteSharedBuilder,
+  toggleSharedBuilderBan,
+  getSharedBannedUsers,
+} from "@/lib/serverStore";
 import { getSupabase } from "@/lib/supabase/db";
 
 export async function GET(req: Request) {
@@ -52,6 +60,7 @@ export async function GET(req: Request) {
           } catch {}
 
           const storeFollows = getSharedFollows();
+          const bannedList = getSharedBannedUsers();
 
           builders = realProfiles.map((p: any) => {
             const forThis = supabaseFollows.filter((f) => f.following_id === p.id);
@@ -68,6 +77,7 @@ export async function GET(req: Request) {
               p.followers_count || 0
             );
             const stats = projectStats.get(p.id) || { projectsCount: 0, totalLikes: 0 };
+            const isBanned = bannedList.includes(p.id) || (p.handle && bannedList.includes(p.handle)) || false;
 
             return {
               id: p.id,
@@ -76,6 +86,7 @@ export async function GET(req: Request) {
               avatar: p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`,
               bio: p.bio || "zemix 메이커",
               role: p.role || "Maker",
+              isBanned,
               isStartingMember: p.is_starting_member ?? true,
               followersCount,
               isFollowing,
@@ -135,10 +146,16 @@ export async function GET(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const { builderId, followerId } = body;
+    const { builderId, followerId, action } = body;
 
     if (!builderId) {
       return NextResponse.json({ error: "builderId is required" }, { status: 400 });
+    }
+
+    // Admin action: Ban or Unban
+    if (action === "ban" || action === "unban") {
+      const res = toggleSharedBuilderBan(builderId, action === "ban");
+      return NextResponse.json({ success: true, builderId, isBanned: res.isBanned });
     }
 
     if (followerId && followerId === builderId) {
@@ -228,6 +245,37 @@ export async function POST(req: Request) {
     } catch {}
 
     return NextResponse.json(saved);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    let id = searchParams.get("id");
+    if (!id) {
+      const body = await req.json().catch(() => ({}));
+      id = body?.id;
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing builder id" }, { status: 400 });
+    }
+
+    deleteSharedBuilder(id);
+
+    try {
+      const supabase = getSupabase();
+      if (supabase) {
+        await (supabase as any).from("profiles").delete().eq("id", id);
+        await (supabase as any).from("projects").delete().eq("user_id", id);
+      }
+    } catch (e) {
+      console.warn("Supabase profile deletion warning:", e);
+    }
+
+    return NextResponse.json({ success: true, id });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

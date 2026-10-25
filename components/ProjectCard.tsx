@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Users } from "lucide-react";
+import { Heart, MessageCircle, Users, Trash2 } from "lucide-react";
 import { Project } from "@/lib/types";
-import { toggleProjectLike, isProjectLiked } from "@/lib/storage";
+import { toggleProjectLike, isProjectLiked, deleteProject } from "@/lib/storage";
 import { useAuth } from "@/context/AuthContext";
 
 interface ProjectCardProps {
@@ -15,9 +15,21 @@ interface ProjectCardProps {
 
 export default function ProjectCard({ project, onLikeChanged }: ProjectCardProps) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [likesCount, setLikesCount] = useState(project.likesCount);
   const [isLiked, setIsLiked] = useState(() => isProjectLiked(project.id) || project.isLiked || false);
+
+  const canDelete = Boolean(isAdmin || (user && (user.id === project.author?.id || user.handle === project.author?.handle)));
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!canDelete) return;
+    if (confirm(`'${project.title}' 프로젝트를 삭제하시겠습니까?\n이 작업은 취소할 수 없습니다.`)) {
+      deleteProject(project.id);
+      window.dispatchEvent(new CustomEvent("lumio_data_synced"));
+    }
+  };
 
   useEffect(() => {
     setLikesCount(project.likesCount);
@@ -134,6 +146,16 @@ export default function ProjectCard({ project, onLikeChanged }: ProjectCardProps
                 <MessageCircle className="h-3 w-3" />
                 <span>{project.commentsCount + project.feedbacksCount}</span>
               </span>
+              {canDelete && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="p-1 text-muted hover:text-danger hover:bg-danger-soft rounded transition-colors cursor-pointer"
+                  title={isAdmin ? "프로젝트 강제 삭제 (관리자)" : "프로젝트 삭제"}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -267,6 +289,17 @@ export default function ProjectCard({ project, onLikeChanged }: ProjectCardProps
                 <Users className="h-3.5 w-3.5" />
                 <span>{project.followersCount}</span>
               </span>
+
+              {canDelete && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="p-1 text-muted hover:text-danger hover:bg-danger-soft rounded transition-colors cursor-pointer ml-auto"
+                  title={isAdmin ? "프로젝트 강제 삭제 (관리자)" : "프로젝트 삭제"}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </div>
         </div>

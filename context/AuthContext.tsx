@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Builder } from "@/lib/types";
-import { getCurrentUser, setCurrentUser as storeCurrentUser, upsertBuilder } from "@/lib/storage";
+import { getCurrentUser, setCurrentUser as storeCurrentUser, upsertBuilder, isUserBanned } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 import { isUserAdmin } from "@/lib/auth";
 
@@ -203,6 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: resolvedRole,
       email: resolvedEmail,
       isAdmin: userIsAdmin,
+      isBanned: profileSrc?.isBanned || profileSrc?.is_banned || isUserBanned(sessionUser.id) || (local ? local.isBanned : false) || false,
       isStartingMember: profileSrc?.isStartingMember ?? profileSrc?.is_starting_member ?? (local ? local.isStartingMember : true),
       followersCount: profileSrc?.followersCount ?? profileSrc?.followers_count ?? (local ? local.followersCount : 0),
       socials: resolvedSocials,

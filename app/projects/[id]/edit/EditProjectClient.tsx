@@ -63,7 +63,7 @@ const HELP_OPTIONS = [
 
 export default function EditProjectClient({ projectId }: { projectId: string }) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -177,7 +177,7 @@ export default function EditProjectClient({ projectId }: { projectId: string }) 
   }
 
   const isOwner = Boolean(
-    user && (user.id === project.author.id || user.handle === project.author.handle)
+    user && (user.id === project.author.id || user.handle === project.author.handle || isAdmin)
   );
 
   if (!isOwner) {

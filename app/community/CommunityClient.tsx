@@ -149,6 +149,11 @@ function CommunityContent({ initialPosts = [] }: { initialPosts?: CommunityPost[
       return;
     }
 
+    if (user.isBanned) {
+      alert("관리자에 의해 계정이 밴(정지)되었습니다. 글을 작성할 수 없습니다.");
+      return;
+    }
+
     if (!newTitle.trim() || !newContent.trim()) {
       alert("제목과 내용을 모두 입력해 주세요.");
       return;
@@ -229,6 +234,11 @@ function CommunityContent({ initialPosts = [] }: { initialPosts?: CommunityPost[
       if (confirm("댓글을 작성하려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?")) {
         router.push(`/login?redirect=/community?post=${selectedPost?.id}`);
       }
+      return;
+    }
+
+    if (user.isBanned) {
+      alert("관리자에 의해 계정이 밴(정지)되었습니다. 댓글을 작성할 수 없습니다.");
       return;
     }
 
