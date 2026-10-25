@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   getSharedProjects,
+  getSharedProjectById,
   saveSharedProject,
   updateSharedProject,
   deleteSharedProject,
@@ -127,20 +128,61 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Missing project id" }, { status: 400 });
     }
 
-    const updated = updateSharedProject(id, updates);
-    if (!updated) {
+    const supabase = getSupabase();
+    let existingProject: Project | null = null;
+
+    // 1. Check Supabase first for the latest record
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
+        if (!error && data) {
+          existingProject = rowToProject(data);
+        }
+      } catch (err) {
+        console.warn("Supabase fetch before project update error:", err);
+      }
+    }
+
+    // 2. Fallback to local serverStore
+    if (!existingProject) {
+      existingProject = getSharedProjectById(id) || null;
+    }
+
+    if (!existingProject && !updates?.title) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Sync to Supabase if table exists
-    try {
-      const supabase = getSupabase();
-      if (supabase) {
-        await supabase.from("projects").upsert(projectToRow(updated));
-      }
-    } catch {}
+    const mergedProject: Project = {
+      ...(existingProject || ({} as Project)),
+      ...updates,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
 
-    return NextResponse.json(updated);
+    // 3. Update local serverStore (memory / json)
+    const inStore = updateSharedProject(id, updates);
+    if (!inStore) {
+      saveSharedProject(mergedProject);
+    }
+
+    // 4. Upsert to Supabase
+    if (supabase) {
+      try {
+        const row = projectToRow(mergedProject);
+        const { error: upsertErr } = await supabase.from("projects").upsert(row);
+        if (upsertErr) {
+          console.warn("Supabase project upsert warning:", upsertErr);
+        }
+      } catch (dbErr) {
+        console.warn("Supabase project update warning:", dbErr);
+      }
+    }
+
+    return NextResponse.json(mergedProject);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

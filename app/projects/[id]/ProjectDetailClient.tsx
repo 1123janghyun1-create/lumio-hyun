@@ -142,10 +142,16 @@ export default function ProjectDetailClient({
       if (typeof window !== "undefined") {
         const isLiked = isProjectLiked(initialProject.id);
         const local = getProjectById(initialProject.id);
+        const localTime = local?.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+        const initTime = initialProject?.updatedAt ? new Date(initialProject.updatedAt).getTime() : 0;
+        const base = (local && localTime > initTime)
+          ? { ...initialProject, ...local }
+          : { ...local, ...initialProject };
         return {
-          ...local,
-          ...initialProject,
-          isLiked: isLiked || !!local?.isLiked,
+          ...base,
+          isLiked: isLiked || !!local?.isLiked || !!initialProject.isLiked,
+          likesCount: Math.max(local?.likesCount || 0, initialProject.likesCount || 0),
+          viewsCount: Math.max(local?.viewsCount || 0, initialProject.viewsCount || 0),
         };
       }
       return initialProject;
@@ -253,16 +259,14 @@ export default function ProjectDetailClient({
               found.viewsCount || 0,
               prev?.viewsCount || 0
             );
+            const prevTime = prev?.updatedAt ? new Date(prev.updatedAt).getTime() : 0;
+            const foundTime = found?.updatedAt ? new Date(found.updatedAt).getTime() : 0;
+            const chosen = (prev && prevTime > foundTime) ? { ...found, ...prev } : { ...prev, ...found };
             return {
-              ...(prev || {}),
-              ...found,
+              ...chosen,
               isLiked,
               likesCount,
               viewsCount,
-              description: found.description || prev?.description || "",
-              demoUrl: found.demoUrl || prev?.demoUrl,
-              teamChat: found.teamChat || prev?.teamChat,
-              stage: found.stage || prev?.stage,
             };
           });
           setIsFollowingMaker(isBuilderFollowed(found.author?.id));
@@ -291,16 +295,14 @@ export default function ProjectDetailClient({
               found.viewsCount || 0,
               prev?.viewsCount || 0
             );
+            const prevTime = prev?.updatedAt ? new Date(prev.updatedAt).getTime() : 0;
+            const foundTime = found?.updatedAt ? new Date(found.updatedAt).getTime() : 0;
+            const chosen = (prev && prevTime > foundTime) ? { ...found, ...prev } : { ...prev, ...found };
             return {
-              ...(prev || {}),
-              ...found,
+              ...chosen,
               isLiked,
               likesCount,
               viewsCount,
-              description: found.description || prev?.description || "",
-              demoUrl: found.demoUrl || prev?.demoUrl,
-              teamChat: found.teamChat || prev?.teamChat,
-              stage: found.stage || prev?.stage,
             };
           });
           setIsFollowingMaker(isBuilderFollowed(found.author?.id));
