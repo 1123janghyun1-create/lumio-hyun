@@ -1180,3 +1180,159 @@ export function markAllNotificationsAsRead(): void {
   setStoredItem(STORAGE_KEYS.NOTIFICATIONS, updated);
 }
 
+// -------------------------------------------------------------
+// Extended Platform Features (50 Features Hub)
+// -------------------------------------------------------------
+import {
+  INITIAL_PERKS,
+  INITIAL_TEMPLATES,
+  INITIAL_CHALLENGES,
+  INITIAL_COLLECTIONS,
+  INITIAL_AB_TESTS,
+  LOUNGE_ROOMS,
+} from "./platformData";
+import {
+  PerkItem,
+  TemplateItem,
+  ChallengeItem,
+  CuratedCollection,
+  AbTestItem,
+  LoungeMessage,
+} from "./types";
+
+export function getPerks(): PerkItem[] {
+  return getStoredItem<PerkItem[]>("zemix_perks", INITIAL_PERKS);
+}
+
+export function getTemplates(): TemplateItem[] {
+  return getStoredItem<TemplateItem[]>("zemix_templates", INITIAL_TEMPLATES);
+}
+
+export function getChallenges(): ChallengeItem[] {
+  return getStoredItem<ChallengeItem[]>("zemix_challenges", INITIAL_CHALLENGES);
+}
+
+export function toggleJoinChallenge(challengeId: string): ChallengeItem[] {
+  const list = getChallenges();
+  const updated = list.map((c) => {
+    if (c.id === challengeId) {
+      const nextJoined = !c.isJoined;
+      return {
+        ...c,
+        isJoined: nextJoined,
+        participantsCount: nextJoined ? c.participantsCount + 1 : Math.max(0, c.participantsCount - 1),
+      };
+    }
+    return c;
+  });
+  setStoredItem("zemix_challenges", updated);
+  return updated;
+}
+
+export function getCollections(): CuratedCollection[] {
+  return getStoredItem<CuratedCollection[]>("zemix_collections", INITIAL_COLLECTIONS);
+}
+
+export function getAbTests(): AbTestItem[] {
+  return getStoredItem<AbTestItem[]>("zemix_ab_tests", INITIAL_AB_TESTS);
+}
+
+export function voteAbTest(testId: string, option: "A" | "B"): AbTestItem[] {
+  const list = getAbTests();
+  const updated = list.map((t) => {
+    if (t.id === testId) {
+      if (t.userVoted === option) return t;
+      const prevVoted = t.userVoted;
+      return {
+        ...t,
+        userVoted: option,
+        votesA: option === "A" ? t.votesA + 1 : prevVoted === "A" ? Math.max(0, t.votesA - 1) : t.votesA,
+        votesB: option === "B" ? t.votesB + 1 : prevVoted === "B" ? Math.max(0, t.votesB - 1) : t.votesB,
+      };
+    }
+    return t;
+  });
+  setStoredItem("zemix_ab_tests", updated);
+  return updated;
+}
+
+export function getLoungeMessages(roomId: string): LoungeMessage[] {
+  const all = getStoredItem<Record<string, LoungeMessage[]>>("zemix_lounge_messages", {
+    "room-showcase": [
+      {
+        id: "m-1",
+        roomId: "room-showcase",
+        user: { id: "u-1", name: "김민수", handle: "minsu_dev", avatar: "/icon.png", role: "Indie Maker", bio: "" },
+        content: "오늘 신규 런칭한 AI 웹앱에 많은 피드백 부탁드립니다! 다들 화이팅입니다 🔥",
+        createdAt: "2026-10-25T11:00:00Z",
+      },
+    ],
+    "room-night-code": [
+      {
+        id: "m-2",
+        roomId: "room-night-code",
+        user: { id: "u-2", name: "Sarah Lee", handle: "sarah_ui", avatar: "/icon.png", role: "Product Designer", bio: "" },
+        content: "새벽 2시까지 디자인 시스템 잡고 있는데 역시 다크모드가 최고네요 ✨",
+        createdAt: "2026-10-25T11:30:00Z",
+      },
+    ],
+    "room-tech-qa": [
+      {
+        id: "m-3",
+        roomId: "room-tech-qa",
+        user: { id: "u-3", name: "박준영", handle: "jypark", avatar: "/icon.png", role: "Fullstack", bio: "" },
+        content: "Next.js 15 Partial Prerendering(PPR) 적용해보신 분 계신가요? 속도 체감 엄청나네요!",
+        createdAt: "2026-10-25T12:00:00Z",
+      },
+    ],
+  });
+  return all[roomId] || [];
+}
+
+export function sendLoungeMessage(roomId: string, user: Builder, content: string): LoungeMessage[] {
+  const all = getStoredItem<Record<string, LoungeMessage[]>>("zemix_lounge_messages", {});
+  const roomMsgs = all[roomId] || getLoungeMessages(roomId);
+  const newMsg: LoungeMessage = {
+    id: `msg-${Date.now()}`,
+    roomId,
+    user,
+    content,
+    createdAt: new Date().toISOString(),
+  };
+  const updated = [...roomMsgs, newMsg];
+  all[roomId] = updated;
+  setStoredItem("zemix_lounge_messages", all);
+  return updated;
+}
+
+// Builder XP & Level
+export function getBuilderXp(userId: string): { xp: number; level: number; tier: string; nextLevelXp: number } {
+  const xpMap = getStoredItem<Record<string, number>>("zemix_builder_xp", {});
+  const xp = xpMap[userId] || 120; // starter baseline
+  const level = Math.floor(xp / 100) + 1;
+  const tier = level >= 10 ? "Master Architect" : level >= 5 ? "Power Builder" : "Rookie";
+  const nextLevelXp = level * 100;
+  return { xp, level, tier, nextLevelXp };
+}
+
+export function addBuilderXp(userId: string, amount: number): { xp: number; level: number; tier: string } {
+  const xpMap = getStoredItem<Record<string, number>>("zemix_builder_xp", {});
+  const current = xpMap[userId] || 120;
+  const next = current + amount;
+  xpMap[userId] = next;
+  setStoredItem("zemix_builder_xp", xpMap);
+  return getBuilderXp(userId);
+}
+
+// Daily Fortune & Code Quiz
+export function getDailyDeveloperFortune(): { quote: string; luckyTech: string; luckyColor: string; memeTip: string } {
+  const fortunes = [
+    { quote: "오늘 당신의 빌드는 단 한 번의 에러도 없이 초록불(Exit 0)을 띱니다.", luckyTech: "Next.js 15 Turbopack", luckyColor: "Cyan #38bdf8", memeTip: "커밋 메시지에 'fix' 대신 'feat'을 쓰면 기분이 좋아집니다." },
+    { quote: "생각지 못한 곳에서 열정적인 첫 진성 유저가 찾아오는 날입니다.", luckyTech: "Supabase Realtime", luckyColor: "Emerald #10b981", memeTip: "커피 한 잔 마시고 CSS 마진을 4px만 더 주면 완벽해집니다." },
+    { quote: "골치 아팠던 비동기 버그가 산책 한 번 다녀오면 마법처럼 풀립니다.", luckyTech: "TypeScript Strict Mode", luckyColor: "Purple #a855f7", memeTip: "console.log 지우는 걸 잊지 마세요!" },
+  ];
+  const dayIndex = new Date().getDate() % fortunes.length;
+  return fortunes[dayIndex];
+}
+
+
