@@ -38,6 +38,7 @@ const CATEGORIES = [
   "Feedback Request",
   "Team Building",
   "Tips & Insights",
+  "Desk Setup & Gear",
 ];
 
 function CommunityContent({ initialPosts = [] }: { initialPosts?: CommunityPost[] }) {

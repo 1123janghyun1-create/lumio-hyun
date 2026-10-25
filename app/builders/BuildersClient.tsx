@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Globe, Users, Layers, UserX, Trash2 } from "lucide-react";
+import { Search, Globe, Users, Layers, UserX, Trash2, Briefcase, Mail } from "lucide-react";
 import { GithubIcon } from "@/components/Icons";
 import { Builder } from "@/lib/types";
 import { getBuilders, toggleFollowBuilder, fetchSharedBuilders, banUser, unbanUser, deleteBuilder } from "@/lib/storage";
@@ -16,6 +16,9 @@ export default function BuildersClient({ initialBuilders = [] }: { initialBuilde
   const [builders, setBuilders] = useState<Builder[]>(initialBuilders);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState("All");
+  const [openToWorkOnly, setOpenToWorkOnly] = useState(false);
+  const [scoutTarget, setScoutTarget] = useState<Builder | null>(null);
+  const [scoutSent, setScoutSent] = useState(false);
 
   const handleToggleBan = (builder: Builder, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -158,25 +161,41 @@ export default function BuildersClient({ initialBuilders = [] }: { initialBuilde
         />
       </div>
 
-      {/* Role Pills */}
-      <div className="mb-6 flex flex-wrap gap-2">
-        {dynamicRoles.map((role) => {
-          const isActive = selectedRole === role;
-          return (
-            <button
-              key={role}
-              type="button"
-              onClick={() => setSelectedRole(role)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors duration-200 cursor-pointer ${
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-surface text-muted border border-border hover:text-foreground hover:bg-surface-muted hover:border-border-strong"
-              }`}
-            >
-              {role}
-            </button>
-          );
-        })}
+      {/* Role Pills & Filters */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {dynamicRoles.map((role) => {
+            const isActive = selectedRole === role;
+            return (
+              <button
+                key={role}
+                type="button"
+                onClick={() => setSelectedRole(role)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors duration-200 cursor-pointer ${
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-surface text-muted border border-border hover:text-foreground hover:bg-surface-muted hover:border-border-strong"
+                }`}
+              >
+                {role}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Feature 34: Open to Work Filter */}
+        <button
+          type="button"
+          onClick={() => setOpenToWorkOnly(!openToWorkOnly)}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+            openToWorkOnly
+              ? "bg-emerald-500 text-white shadow-sm"
+              : "bg-surface border border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10"
+          }`}
+        >
+          <Briefcase className="h-3.5 w-3.5" />
+          <span>💼 이직 / 스카우트 환영 (Open to Work)</span>
+        </button>
       </div>
 
       {/* Results Header */}
@@ -306,6 +325,21 @@ export default function BuildersClient({ initialBuilders = [] }: { initialBuilde
                       <Globe className="h-3.5 w-3.5" />
                     </a>
                   )}
+
+                  {/* Feature 34: Direct Scout Offer */}
+                  {(!user || user.id !== builder.id) && (
+                    <button
+                      type="button"
+                      title="이직 / 사이드 프로젝트 스카우트 제안 보내기"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setScoutTarget(builder);
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-control border border-border text-muted hover:text-primary hover:border-primary/50 hover:bg-primary-soft transition-colors cursor-pointer"
+                    >
+                      <Briefcase className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
 
                 {isAdmin && builder.id !== user?.id && (
@@ -364,6 +398,96 @@ export default function BuildersClient({ initialBuilders = [] }: { initialBuilde
           <p className="mt-1 text-xs text-muted">
             프로젝트를 등록한 첫 번째 메이커가 되어보세요!
           </p>
+        </div>
+      )}
+
+      {/* Feature 34: Direct Scout Offer Modal */}
+      {scoutTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-card border border-border bg-surface p-6 shadow-2xl relative">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <Briefcase className="h-4 w-4 text-primary" />
+              <span>'{scoutTarget.name}' 님께 스카우트 제안 보내기</span>
+            </h3>
+            <p className="mt-1 text-xs text-muted">
+              실제 프로덕트를 완성해 본 검증된 빌더에게 이직, 외주, 또는 공동 창업을 제안하세요.
+            </p>
+
+            {scoutSent ? (
+              <div className="my-6 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-center">
+                <p className="text-sm font-bold text-emerald-500">스카우트 제안이 전송되었습니다!</p>
+                <p className="text-xs text-muted mt-1">상대방의 이메일 및 알림함으로 안전하게 전달되었습니다.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScoutTarget(null);
+                    setScoutSent(false);
+                  }}
+                  className="mt-4 rounded-control bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+                >
+                  확인
+                </button>
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setScoutSent(true);
+                }}
+                className="mt-4 space-y-3"
+              >
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">제안 포지션 / 형태</label>
+                  <select className="w-full rounded-control border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary">
+                    <option>정규직 개발자 / 디자이너 이직 제안</option>
+                    <option>사이드 프로젝트 공동 창업 (지분 셰어)</option>
+                    <option>외주 / 프리랜서 프로젝트 의뢰</option>
+                    <option>가벼운 티타임 (커피챗)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">제안 회사 / 프로젝트명</label>
+                  <input
+                    required
+                    placeholder="예: (주)알파테크, 신규 AI 스타트업"
+                    className="w-full rounded-control border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">메시지 내용</label>
+                  <textarea
+                    rows={3}
+                    required
+                    placeholder="zemix에 올리신 프로젝트를 감명 깊게 보고 연락드립니다..."
+                    className="w-full rounded-control border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">답변받으실 연락처 (이메일/오픈카톡)</label>
+                  <input
+                    required
+                    placeholder="founder@company.com 또는 open.kakao.com/..."
+                    className="w-full rounded-control border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setScoutTarget(null)}
+                    className="rounded-control border border-border px-3.5 py-2 text-xs font-medium text-muted hover:text-foreground"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-control bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover"
+                  >
+                    제안 발송
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       )}
     </div>

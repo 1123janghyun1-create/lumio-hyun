@@ -81,7 +81,7 @@ export default function Footer() {
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-5 text-xs font-medium text-muted">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-muted">
             <Link href="/explore" className="hover:text-foreground transition-colors">
               Explore
             </Link>
@@ -92,6 +92,30 @@ export default function Footer() {
             <Link href="/leaderboard" className="hover:text-foreground transition-colors flex items-center gap-1">
               <Trophy className="h-3 w-3 text-amber-500" />
               명예의 전당
+            </Link>
+            <Link href="/perks" className="hover:text-foreground transition-colors text-primary font-semibold">
+              🎁 혜택 몰
+            </Link>
+            <Link href="/templates" className="hover:text-foreground transition-colors">
+              템플릿 샵
+            </Link>
+            <Link href="/challenges" className="hover:text-foreground transition-colors">
+              월간 챌린지
+            </Link>
+            <Link href="/lounge" className="hover:text-foreground transition-colors">
+              라이브 라운지
+            </Link>
+            <Link href="/ab-tests" className="hover:text-foreground transition-colors">
+              A/B 투표
+            </Link>
+            <Link href="/collections" className="hover:text-foreground transition-colors">
+              골든 컬렉션
+            </Link>
+            <Link href="/demoday" className="hover:text-foreground transition-colors">
+              데모데이 엑스포
+            </Link>
+            <Link href="/wrapped" className="hover:text-foreground transition-colors text-amber-500 font-semibold">
+              ✨ 2026 랩드
             </Link>
             <Link href="/ideas" className="hover:text-foreground transition-colors flex items-center gap-1">
               <Lightbulb className="h-3 w-3 text-emerald-500" />

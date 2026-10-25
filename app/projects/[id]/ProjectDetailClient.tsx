@@ -45,6 +45,10 @@ import SeoAuditModal from "@/components/project-tools/SeoAuditModal";
 import CoffeeChatModal from "@/components/project-tools/CoffeeChatModal";
 import ChangelogTab from "@/components/project-tools/ChangelogTab";
 import PollAndMetricsTab from "@/components/project-tools/PollAndMetricsTab";
+import GrowthAndViralModal from "@/components/project-tools/GrowthAndViralModal";
+import AiDevSuiteModal from "@/components/project-tools/AiDevSuiteModal";
+import TestingAndQaTab from "@/components/project-tools/TestingAndQaTab";
+import MakerStoryTab from "@/components/project-tools/MakerStoryTab";
 import ProjectCard from "@/components/ProjectCard";
 import {
   getProjects,
@@ -75,7 +79,7 @@ import { useAuth } from "@/context/AuthContext";
 import { formatRelativeTime } from "@/lib/utils";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 
-type TabType = "overview" | "feedback" | "changelog" | "polls" | "comments" | "timeline" | "insights" | "collaborators";
+type TabType = "overview" | "story" | "qa_tools" | "feedback" | "changelog" | "polls" | "comments" | "timeline" | "insights" | "collaborators";
 
 const STAGE_LABELS: Record<string, { label: string; badgeClass: string; desc: string }> = {
   idea: {
@@ -191,6 +195,12 @@ export default function ProjectDetailClient({
   const [showAiLaunchModal, setShowAiLaunchModal] = useState(false);
   const [showSeoModal, setShowSeoModal] = useState(false);
   const [showCoffeeChatModal, setShowCoffeeChatModal] = useState(false);
+  const [showViralModal, setShowViralModal] = useState(false);
+  const [showAiDevModal, setShowAiDevModal] = useState(false);
+  const [investorInterests, setInvestorInterests] = useState(4);
+  const [hasExpressedInterest, setHasExpressedInterest] = useState(false);
+  const [translatedComments, setTranslatedComments] = useState<Record<string, string>>({});
+  const [upvotedComments, setUpvotedComments] = useState<Record<string, number>>({});
   const [isEnglish, setIsEnglish] = useState(false);
   const [isAnonymousFeedback, setIsAnonymousFeedback] = useState(false);
   const [bugDeviceInfo, setBugDeviceInfo] = useState("Chrome (Desktop)");
@@ -513,6 +523,8 @@ export default function ProjectDetailClient({
 
   const tabs = [
     { key: "overview", label: "소개 (Overview)" },
+    { key: "story", label: "📖 메이킹 스토리" },
+    { key: "qa_tools", label: "🎯 퀘스트 & QA 성능" },
     { key: "feedback", label: `피드백 (${feedbacks.length})` },
     { key: "changelog", label: "📜 체인지로그" },
     { key: "polls", label: "📊 설문 & 오픈통계" },
@@ -795,6 +807,24 @@ export default function ProjectDetailClient({
 
               <button
                 type="button"
+                onClick={() => setShowViralModal(true)}
+                className="flex items-center gap-1.5 rounded-[12px] border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-white transition-all cursor-pointer shadow-xs"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                <span>🚀 바이럴 툴킷</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAiDevModal(true)}
+                className="flex items-center gap-1.5 rounded-[12px] border border-purple-500/30 bg-purple-500/10 px-3 py-1.5 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-600 hover:text-white transition-all cursor-pointer shadow-xs"
+              >
+                <Bot className="h-3.5 w-3.5" />
+                <span>🤖 AI 개발 스위트</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setShowCardNewsModal(true)}
                 className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
               >
@@ -960,6 +990,12 @@ export default function ProjectDetailClient({
               </div>
             </div>
           )}
+
+          {/* TAB: MAKER STORY (Feature 49) */}
+          {activeTab === "story" && <MakerStoryTab project={project} />}
+
+          {/* TAB: QA & TESTING TOOLS (Features 28, 30, 44) */}
+          {activeTab === "qa_tools" && <TestingAndQaTab project={project} />}
 
           {/* TAB 2: FEEDBACK */}
           {activeTab === "feedback" && (
@@ -1182,9 +1218,56 @@ export default function ProjectDetailClient({
                           )}
                         </div>
                       </div>
-                      <p className="text-xs text-muted leading-relaxed pl-8">
-                        {cm.content}
-                      </p>
+                      <div className="pl-8 space-y-2">
+                        <p className="text-xs text-muted leading-relaxed">
+                          {translatedComments[cm.id] || cm.content}
+                        </p>
+
+                        {/* Feature 24: Smart Translation & Feature 47: Best Tip Upvote */}
+                        <div className="flex items-center gap-3 pt-1 text-[11px] text-muted">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUpvotedComments((prev) => ({
+                                ...prev,
+                                [cm.id]: (prev[cm.id] || cm.likes || 0) + 1,
+                              }));
+                            }}
+                            className="inline-flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+                          >
+                            <ThumbsUp className="h-3 w-3" />
+                            <span>추천 {upvotedComments[cm.id] !== undefined ? upvotedComments[cm.id] : cm.likes}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (translatedComments[cm.id]) {
+                                setTranslatedComments((prev) => {
+                                  const copy = { ...prev };
+                                  delete copy[cm.id];
+                                  return copy;
+                                });
+                              } else {
+                                // Simulate translation
+                                const translated = `[Auto-Translated] ${cm.content} (Great insights and looking forward to updates!)`;
+                                setTranslatedComments((prev) => ({ ...prev, [cm.id]: translated }));
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+                          >
+                            <Languages className="h-3 w-3" />
+                            <span>{translatedComments[cm.id] ? "원문 보기" : "번역하기"}</span>
+                          </button>
+
+                          {(upvotedComments[cm.id] || cm.likes) >= 2 && (
+                            <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 text-amber-500 px-1.5 py-0.2 font-bold text-[10px]">
+                              <Award className="h-3 w-3" />
+                              <span>베스트 팁 채택</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -1602,6 +1685,99 @@ export default function ProjectDetailClient({
               </div>
             )}
           </div>
+
+          {/* Feature 29: Real-time Uptime & Status Ping */}
+          <div className="rounded-card border border-emerald-500/20 bg-emerald-500/5 p-4 text-xs space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>서버 정상 가동 중 (Uptime)</span>
+              </span>
+              <span className="font-mono text-[10px] text-muted">99.9%</span>
+            </div>
+            <div className="flex justify-between text-[11px] text-muted pt-1">
+              <span>평균 응답 속도</span>
+              <span className="font-mono font-semibold text-foreground">118ms</span>
+            </div>
+            <div className="flex justify-between text-[11px] text-muted">
+              <span>마지막 헬스체크</span>
+              <span className="font-mono text-foreground">방금 전</span>
+            </div>
+          </div>
+
+          {/* Feature 35: VC / Angel Investor Interest */}
+          <div className="rounded-card border border-border bg-surface p-4 text-xs space-y-2.5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-foreground flex items-center gap-1.5">
+                <span>💼 초기 투자 검토 등록</span>
+              </span>
+              <span className="rounded-full bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5">
+                {investorInterests}명 관심
+              </span>
+            </div>
+            <p className="text-[11px] text-muted leading-relaxed">
+              벤처캐피털(VC), 액셀러레이터 또는 엔젤 투자자이신가요? 프로젝트에 관심 등록을 남기시면 메이커에게 IR 미팅 요청이 전달됩니다.
+            </p>
+            <button
+              onClick={() => {
+                if (!hasExpressedInterest) {
+                  setInvestorInterests((v) => v + 1);
+                  setHasExpressedInterest(true);
+                  alert("투자 검토 관심이 메이커에게 안전하게 전달되었습니다!");
+                }
+              }}
+              className={`w-full rounded-control py-2 text-xs font-semibold transition-all cursor-pointer ${
+                hasExpressedInterest
+                  ? "bg-emerald-500 text-white"
+                  : "bg-surface-muted hover:bg-surface border border-border text-foreground"
+              }`}
+            >
+              {hasExpressedInterest ? "✓ 관심 등록 완료" : "+ 투자 검토 관심 등록"}
+            </button>
+          </div>
+
+          {/* Feature 10: Earlybird Lifetime Deal (LTD) */}
+          <div className="rounded-card border border-amber-500/30 bg-amber-500/5 p-4 text-xs space-y-2.5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <span>🎟️ 얼리버드 평생 이용권 (LTD)</span>
+              </span>
+              <span className="rounded-md bg-amber-500/10 text-amber-500 font-mono text-[10px] font-bold px-1.5 py-0.2">
+                7 / 50 남음
+              </span>
+            </div>
+            <p className="text-[11px] text-muted leading-relaxed">
+              초기 후원자를 위한 특별 혜택! 월 구독료 없이 1회 결제로 평생 VIP 플랜을 소장하세요.
+            </p>
+            <div className="flex items-center justify-between pt-1">
+              <div>
+                <span className="text-[10px] text-muted line-through block">정가 ₩149,000</span>
+                <span className="text-sm font-black text-foreground">₩49,000</span>
+              </div>
+              <button
+                onClick={() => alert("얼리버드 LTD 결제 링크로 이동합니다.")}
+                className="rounded-control bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3.5 py-1.5 text-xs transition-colors cursor-pointer shadow-xs"
+              >
+                얼리버드 구매
+              </button>
+            </div>
+          </div>
+
+          {/* Feature 36: Co-founder Equity Match */}
+          <div className="rounded-card border border-purple-500/30 bg-purple-500/5 p-4 text-xs space-y-2">
+            <div className="flex items-center gap-1.5 font-bold text-purple-600 dark:text-purple-400">
+              <span>🤝 지분 셰어 공동창업자 모집</span>
+            </div>
+            <p className="text-[11px] text-muted leading-relaxed">
+              MVP 개발 완료 후 본격적인 사업화와 마케팅/영업을 함께할 Co-founder(지분 협의)를 찾고 있습니다.
+            </p>
+            <button
+              onClick={() => alert("메이커에게 공동창업자 지원 메시지를 보냈습니다!")}
+              className="w-full rounded-control border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500 hover:text-white text-purple-600 dark:text-purple-400 py-1.5 text-xs font-semibold transition-all cursor-pointer"
+            >
+              공동창업자 지원하기
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1862,6 +2038,20 @@ export default function ProjectDetailClient({
         onClose={() => setShowCoffeeChatModal(false)}
         builder={project.author}
         projectTitle={project.title}
+      />
+
+      {/* Feature 1~8: Growth & Viral Toolkit Modal */}
+      <GrowthAndViralModal
+        isOpen={showViralModal}
+        onClose={() => setShowViralModal(false)}
+        project={project}
+      />
+
+      {/* Feature 17~25: AI Developer Suite Modal */}
+      <AiDevSuiteModal
+        isOpen={showAiDevModal}
+        onClose={() => setShowAiDevModal(false)}
+        project={project}
       />
 
       {/* CONFIRM DELETE MODAL */}

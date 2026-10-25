@@ -19,11 +19,16 @@ import {
   LogOut,
   Dices,
   ShieldCheck,
+  Zap,
+  Gift,
+  Flame,
+  Sparkles,
 } from "lucide-react";
 import { HexagonLogo } from "@/components/Icons";
 import { useTheme } from "@/context/ThemeContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
+import { getBuilderXp } from "@/lib/storage";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -211,6 +216,28 @@ export default function Navbar() {
                       )}
                     </div>
                     <p className="text-[11px] text-muted">@{user.handle}</p>
+
+                    {/* Builder XP & Level */}
+                    {(() => {
+                      const xpInfo = getBuilderXp(user.id);
+                      return (
+                        <div className="mt-2 rounded-lg bg-surface-muted/60 p-2 border border-border/60">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="font-bold text-primary flex items-center gap-1">
+                              <Zap className="h-3 w-3 fill-current" />
+                              Lv.{xpInfo.level} {xpInfo.tier}
+                            </span>
+                            <span className="text-muted font-mono">{xpInfo.xp} XP</span>
+                          </div>
+                          <div className="mt-1 h-1.5 w-full rounded-full bg-surface border border-border overflow-hidden">
+                            <div
+                              className="h-full bg-primary transition-all duration-300"
+                              style={{ width: `${xpInfo.xp % 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                   
                   <div className="py-1">
@@ -227,16 +254,41 @@ export default function Navbar() {
                     <Link
                       href="/profile"
                       onClick={() => setShowUserMenu(false)}
-                      className="flex items-center gap-2 rounded-control px-3 py-2 text-xs font-medium text-foreground hover:bg-surface-muted"
+                      className="flex items-center gap-2 rounded-control px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted"
                     >
                       <UserIcon className="h-3.5 w-3.5 text-muted" />
                       {t("nav.profile")}
                     </Link>
                     <Link
+                      href="/perks"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-2 rounded-control px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted"
+                    >
+                      <Gift className="h-3.5 w-3.5 text-primary" />
+                      <span>B2B 혜택 몰</span>
+                    </Link>
+                    <Link
+                      href="/challenges"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-2 rounded-control px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted"
+                    >
+                      <Flame className="h-3.5 w-3.5 text-amber-500" />
+                      <span>월간 챌린지</span>
+                    </Link>
+                    <Link
+                      href="/lounge"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-2 rounded-control px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>라이브 라운지</span>
+                    </Link>
+                    <Link
                       href="/activity"
                       onClick={() => setShowUserMenu(false)}
-                      className="flex items-center gap-2 rounded-control px-3 py-2 text-xs font-medium text-foreground hover:bg-surface-muted"
+                      className="flex items-center gap-2 rounded-control px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted"
                     >
+                      <Sparkles className="h-3.5 w-3.5 text-muted" />
                       {t("nav.activity")}
                     </Link>
                   </div>

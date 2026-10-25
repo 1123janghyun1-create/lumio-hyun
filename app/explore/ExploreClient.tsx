@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, Filter, SlidersHorizontal } from "lucide-react";
+import { Search, Filter, SlidersHorizontal, Sparkles } from "lucide-react";
 import ProjectCard from "@/components/ProjectCard";
 import { Project } from "@/lib/types";
 import { getProjects, fetchSharedProjects } from "@/lib/storage";
@@ -29,6 +29,9 @@ const STATUSES = [
   "MVP",
   "Looking for Team",
   "Looking for Testers",
+  "PH 런칭 워밍업",
+  "매각/인수 가능 (For Sale)",
+  "오픈소스 (Good First Issue)",
 ];
 
 export default function ExploreClient({ initialProjects = [] }: { initialProjects?: Project[] }) {
@@ -69,9 +72,15 @@ export default function ExploreClient({ initialProjects = [] }: { initialProject
     if (selectedStatus !== "All") {
       if (selectedStatus === "Looking for Team" && !p.lookingForTeam) return false;
       if (selectedStatus === "Looking for Testers" && !p.lookingForTesters) return false;
+      if (selectedStatus === "PH 런칭 워밍업" && !p.isProductHuntWarmup) return false;
+      if (selectedStatus === "매각/인수 가능 (For Sale)" && !p.isForSale) return false;
+      if (selectedStatus === "오픈소스 (Good First Issue)" && !p.goodFirstIssuesCount) return false;
       if (
         selectedStatus !== "Looking for Team" &&
         selectedStatus !== "Looking for Testers" &&
+        selectedStatus !== "PH 런칭 워밍업" &&
+        selectedStatus !== "매각/인수 가능 (For Sale)" &&
+        selectedStatus !== "오픈소스 (Good First Issue)" &&
         p.status !== selectedStatus
       ) {
         return false;
@@ -107,6 +116,36 @@ export default function ExploreClient({ initialProjects = [] }: { initialProject
             : "Discover fresh side projects across various tech domains and share your valuable feedback."}
         </p>
       </div>
+
+      {/* Feature 14: Premium Spotlight Banner */}
+      {projects.length > 0 && (() => {
+        const spotlight = projects[0];
+        return (
+          <div className="mb-8 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-surface to-purple-500/10 p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <img
+                src={spotlight.logo || spotlight.coverImage || "/icon.png"}
+                alt={spotlight.title}
+                className="h-14 w-14 rounded-xl object-cover border border-border shadow-sm shrink-0"
+              />
+              <div>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full mb-1">
+                  <Sparkles className="h-3 w-3" />
+                  Today's Sponsored Spotlight
+                </span>
+                <h3 className="text-base font-bold text-foreground">{spotlight.title}</h3>
+                <p className="text-xs text-muted line-clamp-1">{spotlight.tagline}</p>
+              </div>
+            </div>
+            <Link
+              href={`/projects/${spotlight.id}`}
+              className="rounded-control bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover transition-colors shrink-0"
+            >
+              스포트라이트 구경하기 →
+            </Link>
+          </div>
+        );
+      })()}
 
       {/* Search Bar */}
       <div className="relative mb-6">
