@@ -190,9 +190,13 @@ export async function fetchSharedProjects(currentUserId?: string): Promise<Proje
           serverIds.add(sp.id);
           const existing = map.get(sp.id);
           const isLiked = likedIds.includes(sp.id) || existing?.isLiked || sp.isLiked || false;
+
+          const localTime = existing?.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+          const serverTime = sp?.updatedAt ? new Date(sp.updatedAt).getTime() : 0;
+          const base = (existing && localTime > serverTime) ? { ...sp, ...existing } : { ...existing, ...sp };
+
           map.set(sp.id, {
-            ...existing,
-            ...sp,
+            ...base,
             isLiked,
             likesCount: Math.max(existing?.likesCount ?? 0, sp.likesCount ?? 0, isLiked ? 1 : 0),
             viewsCount: Math.max(existing?.viewsCount ?? 0, sp.viewsCount ?? 0),
@@ -404,32 +408,79 @@ export function saveProject(projectData: Omit<Project, "id" | "createdAt" | "upd
   return newProject;
 }
 
-export function updateProject(id: string, updates: Partial<Project>): Project | null {
+export async function updateProject(
+  id: string,
+  updates: Partial<Project>,
+  baseProject?: Project
+): Promise<Project | null> {
   const projects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, INITIAL_PROJECTS);
   let updatedProject: Project | null = null;
+  let found = false;
+  const nowIso = new Date().toISOString();
+
   const updatedProjects = projects.map((p) => {
     if (p.id === id) {
+      found = true;
       updatedProject = {
         ...p,
         ...updates,
-        updatedAt: new Date().toISOString(),
+        updatedAt: nowIso,
       };
       return updatedProject;
     }
     return p;
   });
 
+  if (!found && baseProject) {
+    updatedProject = {
+      ...baseProject,
+      ...updates,
+      id,
+      updatedAt: nowIso,
+    };
+    updatedProjects.unshift(updatedProject);
+  }
+
   if (updatedProject) {
     setStoredItem(STORAGE_KEYS.PROJECTS, updatedProjects);
+  }
 
-    // Sync to server & Supabase
-    if (typeof window !== "undefined") {
-      fetch("/api/projects", {
+  // Sync to server & Supabase
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/projects", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, updates }),
-      }).catch((e) => console.warn("Failed to sync project update:", e));
+      });
+      if (res.ok) {
+        const serverData = await res.json();
+        if (serverData && serverData.id) {
+          updatedProject = {
+            ...(updatedProject || {}),
+            ...serverData,
+          };
+          const curProjects = getStoredItem<Project[]>(STORAGE_KEYS.PROJECTS, []);
+          const syncedProjects = curProjects.map((p) =>
+            p.id === id ? { ...p, ...serverData } : p
+          );
+          if (!syncedProjects.some((p) => p.id === id)) {
+            syncedProjects.unshift(serverData);
+          }
+          setStoredItem(STORAGE_KEYS.PROJECTS, syncedProjects);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to sync project update:", e);
     }
+
+    try {
+      window.dispatchEvent(
+        new CustomEvent("lumio_data_synced", {
+          detail: { projectId: id, action: "update" },
+        })
+      );
+    } catch {}
   }
   return updatedProject;
 }
@@ -454,6 +505,13 @@ export function deleteProject(id: string): boolean {
     fetch(`/api/projects?id=${id}`, { method: "DELETE" }).catch((e) =>
       console.warn("Failed to sync project deletion:", e)
     );
+    try {
+      window.dispatchEvent(
+        new CustomEvent("lumio_data_synced", {
+          detail: { projectId: id, action: "delete" },
+        })
+      );
+    } catch {}
   }
 
   return true;
