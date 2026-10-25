@@ -5,6 +5,7 @@ import seedStoreData from "@/data/lumio-store.json";
 
 interface StoreData {
   builders: Builder[];
+  bannedUsers?: string[]; // banned user IDs or handles
   follows?: Record<string, string[]>; // builderId -> array of follower user IDs
   projectLikes?: Record<string, string[]>; // projectId -> array of user IDs
   communityLikes?: Record<string, string[]>; // postId -> array of user IDs
@@ -41,6 +42,7 @@ function ensureStoreFile(): StoreData {
     const content = fs.readFileSync(STORE_FILE, "utf-8");
     const parsed = JSON.parse(content) as StoreData;
     if (!parsed.builders) parsed.builders = [];
+    if (!parsed.bannedUsers) parsed.bannedUsers = [];
     if (!parsed.follows) parsed.follows = {};
     if (!parsed.projectLikes) parsed.projectLikes = {};
     if (!parsed.communityLikes) parsed.communityLikes = {};
@@ -77,19 +79,54 @@ export function getSharedFollows(): Record<string, string[]> {
 export function getSharedBuilders(currentUserId?: string): Builder[] {
   const store = ensureStoreFile();
   if (!store.follows) store.follows = {};
+  if (!store.bannedUsers) store.bannedUsers = [];
 
   return store.builders.map((b) => {
     const hasFollowsRecord = Array.isArray(store.follows![b.id]);
     const followerList = hasFollowsRecord ? store.follows![b.id] : [];
     const count = hasFollowsRecord ? followerList.length : (b.followersCount ?? 0);
     const isFollowing = currentUserId ? followerList.includes(currentUserId) : false;
+    const isBanned = store.bannedUsers?.includes(b.id) || store.bannedUsers?.includes(b.handle) || false;
 
     return {
       ...b,
       followersCount: count,
       isFollowing,
+      isBanned,
     };
   });
+}
+
+export function deleteSharedBuilder(builderId: string): boolean {
+  const store = ensureStoreFile();
+  store.builders = store.builders.filter((b) => b.id !== builderId && b.handle !== builderId);
+  if (store.follows) {
+    delete store.follows[builderId];
+  }
+  writeStoreFile(store);
+  return true;
+}
+
+export function toggleSharedBuilderBan(
+  builderId: string,
+  banned?: boolean
+): { isBanned: boolean; bannedUsers: string[] } {
+  const store = ensureStoreFile();
+  if (!store.bannedUsers) store.bannedUsers = [];
+  const idx = store.bannedUsers.indexOf(builderId);
+  const shouldBan = banned !== undefined ? banned : idx < 0;
+  if (shouldBan && idx < 0) {
+    store.bannedUsers.push(builderId);
+  } else if (!shouldBan && idx >= 0) {
+    store.bannedUsers.splice(idx, 1);
+  }
+  writeStoreFile(store);
+  return { isBanned: shouldBan, bannedUsers: store.bannedUsers };
+}
+
+export function getSharedBannedUsers(): string[] {
+  const store = ensureStoreFile();
+  return store.bannedUsers || [];
 }
 
 export function upsertSharedBuilder(builder: Builder): Builder {

@@ -32,6 +32,7 @@ const STORAGE_KEYS = {
   LIKED_COMMUNITY_IDS: "lumio_clean_liked_community",
   UPVOTED_FEEDBACK_IDS: "lumio_clean_upvoted_feedbacks",
   FOLLOWED_BUILDER_IDS: "lumio_clean_followed_builders",
+  BANNED_USER_IDS: "zemix_banned_user_ids",
 };
 
 // Purge legacy mock data in browser
@@ -958,8 +959,10 @@ export function deleteFeedback(feedbackId: string): boolean {
 export function getBuilders(): Builder[] {
   const builders = getStoredItem<Builder[]>(STORAGE_KEYS.BUILDERS, INITIAL_BUILDERS);
   const followedIds = getStoredItem<string[]>(STORAGE_KEYS.FOLLOWED_BUILDER_IDS, []);
+  const bannedIds = getStoredItem<string[]>(STORAGE_KEYS.BANNED_USER_IDS, []);
   return builders.map((b) => {
     const isFollowing = followedIds.includes(b.id);
+    const isBanned = bannedIds.includes(b.id) || (b.handle && bannedIds.includes(b.handle)) || b.isBanned || false;
     let count = b.followersCount ?? 0;
     if (isFollowing && count === 0) {
       count = 1;
@@ -968,8 +971,74 @@ export function getBuilders(): Builder[] {
       ...b,
       followersCount: count,
       isFollowing,
+      isBanned,
     };
   });
+}
+
+export function isUserBanned(userIdOrHandle: string): boolean {
+  if (!userIdOrHandle) return false;
+  const banned = getStoredItem<string[]>(STORAGE_KEYS.BANNED_USER_IDS, []);
+  return banned.includes(userIdOrHandle);
+}
+
+export function banUser(builderId: string): void {
+  const banned = getStoredItem<string[]>(STORAGE_KEYS.BANNED_USER_IDS, []);
+  if (!banned.includes(builderId)) {
+    setStoredItem(STORAGE_KEYS.BANNED_USER_IDS, [...banned, builderId]);
+  }
+  const builders = getStoredItem<Builder[]>(STORAGE_KEYS.BUILDERS, []);
+  setStoredItem(
+    STORAGE_KEYS.BUILDERS,
+    builders.map((b) => (b.id === builderId || b.handle === builderId ? { ...b, isBanned: true } : b))
+  );
+  if (typeof window !== "undefined") {
+    fetch("/api/builders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ builderId, action: "ban" }),
+    }).catch(() => {});
+    window.dispatchEvent(new CustomEvent("lumio_data_synced"));
+  }
+}
+
+export function unbanUser(builderId: string): void {
+  const banned = getStoredItem<string[]>(STORAGE_KEYS.BANNED_USER_IDS, []);
+  setStoredItem(
+    STORAGE_KEYS.BANNED_USER_IDS,
+    banned.filter((id) => id !== builderId)
+  );
+  const builders = getStoredItem<Builder[]>(STORAGE_KEYS.BUILDERS, []);
+  setStoredItem(
+    STORAGE_KEYS.BUILDERS,
+    builders.map((b) => (b.id === builderId || b.handle === builderId ? { ...b, isBanned: false } : b))
+  );
+  if (typeof window !== "undefined") {
+    fetch("/api/builders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ builderId, action: "unban" }),
+    }).catch(() => {});
+    window.dispatchEvent(new CustomEvent("lumio_data_synced"));
+  }
+}
+
+export async function deleteBuilder(builderId: string): Promise<boolean> {
+  const builders = getStoredItem<Builder[]>(STORAGE_KEYS.BUILDERS, []);
+  setStoredItem(
+    STORAGE_KEYS.BUILDERS,
+    builders.filter((b) => b.id !== builderId && b.handle !== builderId)
+  );
+
+  if (typeof window !== "undefined") {
+    try {
+      await fetch(`/api/builders?id=${encodeURIComponent(builderId)}`, {
+        method: "DELETE",
+      });
+      window.dispatchEvent(new CustomEvent("lumio_data_synced"));
+    } catch {}
+  }
+  return true;
 }
 
 export function upsertBuilder(builder: Builder): void {

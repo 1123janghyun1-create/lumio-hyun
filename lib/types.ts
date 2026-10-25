@@ -9,6 +9,9 @@ export interface Builder {
   role: string;
   email?: string;
   isAdmin?: boolean;
+  isBanned?: boolean;
+  bannedAt?: string;
+  banReason?: string;
   isStartingMember?: boolean;
   isFoundingMember?: boolean;
   projectsCount?: number;
