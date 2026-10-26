@@ -43,11 +43,8 @@ import CardNewsModal from "@/components/project-tools/CardNewsModal";
 import AiLaunchWriterModal from "@/components/project-tools/AiLaunchWriterModal";
 import SeoAuditModal from "@/components/project-tools/SeoAuditModal";
 import CoffeeChatModal from "@/components/project-tools/CoffeeChatModal";
-import ChangelogTab from "@/components/project-tools/ChangelogTab";
-import PollAndMetricsTab from "@/components/project-tools/PollAndMetricsTab";
 import GrowthAndViralModal from "@/components/project-tools/GrowthAndViralModal";
 import AiDevSuiteModal from "@/components/project-tools/AiDevSuiteModal";
-import TestingAndQaTab from "@/components/project-tools/TestingAndQaTab";
 import MakerStoryTab from "@/components/project-tools/MakerStoryTab";
 import ProjectCard from "@/components/ProjectCard";
 import {
@@ -79,7 +76,7 @@ import { useAuth } from "@/context/AuthContext";
 import { formatRelativeTime } from "@/lib/utils";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 
-type TabType = "overview" | "story" | "qa_tools" | "feedback" | "changelog" | "polls" | "comments" | "timeline" | "insights" | "collaborators";
+type TabType = "overview" | "feedback" | "timeline" | "comments" | "insights";
 
 const STAGE_LABELS: Record<string, { label: string; badgeClass: string; desc: string }> = {
   idea: {
@@ -525,27 +522,21 @@ export default function ProjectDetailClient({
 
   const tabs = [
     { key: "overview", label: "소개 (Overview)" },
-    { key: "story", label: "📖 메이킹 스토리" },
-    { key: "qa_tools", label: "🎯 퀘스트 & QA 성능" },
     { key: "feedback", label: `피드백 (${feedbacks.length})` },
-    { key: "changelog", label: "📜 체인지로그" },
-    { key: "polls", label: "📊 설문 & 오픈통계" },
+    { key: "timeline", label: `타임라인 & 업데이트 (${timeline.length})` },
     { key: "comments", label: `댓글 (${comments.length})` },
-    { key: "timeline", label: `타임라인 (${timeline.length})` },
-    { key: "insights", label: "인사이트" },
-    { key: "collaborators", label: "팀원" },
+    { key: "insights", label: "인사이트 (Analytics)" },
   ];
 
   const stageKey = project?.stage || (project?.status === "MVP" ? "idea" : project?.status === "Beta" ? "beta" : "public");
   const stageInfo = (stageKey && STAGE_LABELS[stageKey]) || STAGE_LABELS["public"];
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8 animate-fade-in">
-      {/* Project Card Header Box */}
-      <div className="overflow-hidden rounded-[16px] border border-border shadow-card bg-surface">
-        {/* Cover Banner */}
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 animate-fade-in">
+      {/* Distinct Modern Hero Banner */}
+      <div className="relative overflow-hidden rounded-2xl border border-border/80 shadow-md aspect-[21/9] max-h-[300px] w-full bg-surface-muted group">
         <div
-          className="aspect-video max-h-[360px] w-full"
+          className="h-full w-full transition-transform duration-500 group-hover:scale-[1.01]"
           style={
             project.coverImage
               ? {
@@ -560,20 +551,24 @@ export default function ProjectDetailClient({
                 }
           }
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+      </div>
 
-        {/* Info Header */}
-        <div className="flex flex-col gap-5 p-6 sm:p-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex gap-4 items-start">
+      {/* Project Identity & Action Card */}
+      <div className="relative -mt-10 sm:-mt-12 px-2 sm:px-4 mb-8">
+        <div className="rounded-2xl border border-border bg-surface/95 backdrop-blur-md p-5 sm:p-7 shadow-card">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            {/* Left: Logo + Info */}
+            <div className="flex items-start gap-4 sm:gap-5 min-w-0">
               {project.logo ? (
                 <img
                   src={project.logo}
                   alt={project.title}
-                  className="h-16 w-16 shrink-0 rounded-[12px] border border-border object-cover shadow-sm bg-white"
+                  className="h-16 w-16 sm:h-20 sm:w-20 shrink-0 rounded-2xl border-2 border-surface bg-surface object-cover shadow-md transition-transform hover:scale-105"
                 />
               ) : (
                 <span
-                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[12px] text-2xl font-bold text-white shadow-sm"
+                  className="flex h-16 w-16 sm:h-20 sm:w-20 shrink-0 items-center justify-center rounded-2xl text-2xl sm:text-3xl font-extrabold text-white shadow-md border-2 border-surface"
                   style={{
                     background: project.coverGradient
                       ? `linear-gradient(135deg, ${project.coverGradient[0]}, ${project.coverGradient[1]})`
@@ -583,37 +578,41 @@ export default function ProjectDetailClient({
                   {(project.title || "P").slice(0, 1).toUpperCase()}
                 </span>
               )}
-              <div>
+
+              <div className="min-w-0 flex-1">
+                {/* Badges */}
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${stageInfo.badgeClass}`}>
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${stageInfo.badgeClass}`}>
                     {stageInfo.label}
                   </span>
                   {project.lookingForTeam && (
-                    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-primary-soft text-primary border border-primary/20">
-                      👥 팀원 모집 중
+                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-primary-soft text-primary border border-primary/20">
+                      👥 팀원 모집
                     </span>
                   )}
                   {project.lookingForTesters && (
-                    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                      🧪 테스터 모집 중
+                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                      🧪 테스터 모집
                     </span>
                   )}
                 </div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+
+                {/* Title */}
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                   {project.title}
                 </h1>
-                <p className="mt-2 max-w-2xl text-[15px] text-muted leading-relaxed">
-                  {isEnglish
-                    ? `[EN Translated] ${project.tagline}`
-                    : project.tagline}
+
+                {/* Tagline */}
+                <p className="mt-1 text-sm sm:text-base text-muted line-clamp-2 leading-relaxed">
+                  {isEnglish ? `[EN Translated] ${project.tagline}` : project.tagline}
                 </p>
 
+                {/* Maker Chip */}
                 {project.author && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-xs text-muted">만든 사람:</span>
+                  <div className="mt-3 flex items-center gap-3">
                     <Link
                       href={`/builders/${project.author.id || project.author.handle || ""}`}
-                      className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-muted/60 hover:bg-surface-muted hover:border-primary/40 px-2.5 py-1 text-xs font-medium text-foreground transition-all group"
+                      className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-muted/60 hover:bg-surface-muted px-2.5 py-1 text-xs font-medium text-foreground transition-all group"
                     >
                       <img
                         src={project.author.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=maker"}
@@ -627,61 +626,90 @@ export default function ProjectDetailClient({
                         @{project.author.handle || "maker"}
                       </span>
                     </Link>
+
+                    <button
+                      type="button"
+                      onClick={handleToggleFollow}
+                      className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border transition-colors cursor-pointer ${
+                        isFollowingMaker
+                          ? "border-border bg-surface-muted text-muted"
+                          : "border-primary/30 text-primary hover:bg-primary hover:text-white"
+                      }`}
+                    >
+                      {isFollowingMaker ? "팔로잉" : "+ 팔로우"}
+                    </button>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex shrink-0 items-center gap-2 flex-wrap">
+            {/* Right: Primary Action CTAs */}
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0 lg:self-center">
               {project.websiteUrl && (
                 <a
                   href={project.websiteUrl}
                   target="_blank"
                   rel="noopener"
                   onClick={() => recordProjectOutboundClick(project.id)}
-                  className="flex items-center gap-1.5 rounded-[12px] bg-primary px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 transition-colors cursor-pointer"
+                  className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover transition-colors cursor-pointer"
                 >
                   <Globe className="h-4 w-4" />
-                  <span>웹사이트 방문</span>
+                  <span>공식 웹사이트</span>
                   <ExternalLink className="h-3.5 w-3.5 opacity-80" />
                 </a>
               )}
 
+              {project.demoUrl && project.demoUrl !== project.websiteUrl && (
+                <a
+                  href={project.demoUrl}
+                  target="_blank"
+                  rel="noopener"
+                  className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm font-semibold text-foreground hover:bg-surface-muted transition-colors cursor-pointer"
+                >
+                  <Play className="h-4 w-4 text-emerald-500 fill-emerald-500" />
+                  <span>데모 체험</span>
+                </a>
+              )}
+
+              {/* Like / Heart */}
               <button
                 type="button"
                 onClick={handleLike}
-                className={`flex items-center gap-1.5 rounded-[12px] border px-3.5 py-2.5 text-sm font-semibold transition-colors duration-200 cursor-pointer ${
+                className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 cursor-pointer ${
                   project.isLiked
                     ? "border-rose-500/40 text-rose-500 bg-rose-500/10 shadow-sm"
                     : "border-border text-muted hover:bg-surface-muted hover:text-foreground"
                 }`}
+                title={project.isLiked ? "좋아요 취소" : "좋아요"}
               >
-                <Heart className={`h-4 w-4 ${project.isLiked ? "fill-rose-500 text-rose-500" : ""}`} />
+                <Heart className={`h-4 w-4 ${project.isLiked ? "fill-rose-500 text-rose-500 scale-110" : ""}`} />
                 <span>{project.likesCount}</span>
               </button>
 
-              <span className="flex items-center gap-1 px-2 text-sm text-muted" title="Views">
-                <Eye className="h-4 w-4" />
+              {/* Views */}
+              <span className="flex items-center gap-1 px-2.5 py-2 text-xs font-medium text-muted bg-surface-muted/60 rounded-xl border border-border/50" title="조회수">
+                <Eye className="h-3.5 w-3.5" />
                 <span>{project.viewsCount}</span>
               </span>
 
+              {/* Share */}
               <button
                 type="button"
                 onClick={handleShare}
-                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-2 text-sm font-medium text-muted hover:bg-surface-muted hover:text-foreground cursor-pointer"
+                className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground cursor-pointer transition-colors"
               >
-                <Share2 className="h-4 w-4" />
-                <span className="text-xs">{copied ? "복사됨!" : "공유"}</span>
+                <Share2 className="h-3.5 w-3.5" />
+                <span>{copied ? "복사됨!" : "공유"}</span>
               </button>
 
+              {/* Edit / Delete (Owner or Admin) */}
               {isOwner && (
-                <div className="flex items-center gap-1.5 sm:border-l sm:border-border sm:pl-2 sm:ml-1">
+                <div className="flex items-center gap-1.5 border-l border-border pl-2.5 ml-1">
                   <Link
                     href={`/projects/${project.id}/edit`}
-                    className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-2 text-sm font-semibold text-foreground hover:bg-surface-muted transition-colors cursor-pointer"
+                    className="flex items-center gap-1 rounded-xl border border-border px-2.5 py-2 text-xs font-semibold text-foreground hover:bg-surface-muted transition-colors cursor-pointer"
                   >
-                    <Edit3 className="h-4 w-4" />
+                    <Edit3 className="h-3.5 w-3.5" />
                     <span>수정</span>
                   </Link>
                   <button
@@ -693,9 +721,9 @@ export default function ProjectDetailClient({
                         description: `'${project.title}' 프로젝트와 관련된 모든 피드백, 댓글, 타임라인이 함께 영구 삭제됩니다.`,
                       })
                     }
-                    className="flex items-center gap-1.5 rounded-[12px] border border-danger/40 bg-danger-soft/30 px-3 py-2 text-sm font-semibold text-danger hover:bg-danger-soft transition-colors cursor-pointer"
+                    className="flex items-center gap-1 rounded-xl border border-danger/30 bg-danger-soft/20 px-2.5 py-2 text-xs font-semibold text-danger hover:bg-danger-soft transition-colors cursor-pointer"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                     <span>삭제</span>
                   </button>
                 </div>
@@ -703,95 +731,14 @@ export default function ProjectDetailClient({
             </div>
           </div>
 
-          {/* Links Bar */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
-            {project.websiteUrl && (
-              <a
-                href={project.websiteUrl}
-                target="_blank"
-                rel="noopener"
-                onClick={() => recordProjectOutboundClick(project.id)}
-                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
-              >
-                <Globe className="h-3.5 w-3.5 text-primary" />
-                <span className="flex flex-col items-start leading-tight">
-                  <span className="text-xs font-semibold text-foreground">Website</span>
-                  <span className="text-[11px] font-normal text-muted-foreground">
-                    {String(project.websiteUrl).replace(/^https?:\/\//, "")}
-                  </span>
-                </span>
-                <ExternalLink className="h-3 w-3 ml-1 text-muted" />
-              </a>
-            )}
-
-            {project.demoUrl &&
-              project.demoUrl.trim().replace(/\/$/, "").toLowerCase() !==
-                (project.websiteUrl || "").trim().replace(/\/$/, "").toLowerCase() && (
-              <a
-                href={project.demoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
-              >
-                <Play className="h-3.5 w-3.5 text-purple-500" />
-                <span className="flex flex-col items-start leading-tight">
-                  <span className="text-xs font-semibold text-foreground">Live Demo</span>
-                  <span className="text-[11px] font-normal text-muted-foreground">
-                    {String(project.demoUrl).replace(/^https?:\/\//, "")}
-                  </span>
-                </span>
-                <ExternalLink className="h-3 w-3 ml-1 text-muted" />
-              </a>
-            )}
-
-            {project.githubUrl && (
-              <a
-                href={project.githubUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
-              >
-                <GithubIcon className="h-3.5 w-3.5" />
-                <span className="text-xs font-semibold text-foreground">GitHub 저장소</span>
-                <ExternalLink className="h-3 w-3 ml-1 text-muted" />
-              </a>
-            )}
-
-            {project.teamChat?.url && (
-              <a
-                href={project.teamChat.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
-              >
-                <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="flex flex-col items-start leading-tight">
-                  <span className="text-xs font-semibold text-foreground">
-                    {project.teamChat.platform || "Team Chat"}
-                  </span>
-                  <span className="text-[11px] font-normal text-muted-foreground">
-                    소통 채널 참여
-                  </span>
-                </span>
-                <ExternalLink className="h-3 w-3 ml-1 text-muted" />
-              </a>
-            )}
-
-            {/* Tracking Link display */}
-            <div className="ml-auto hidden md:flex items-center gap-2 text-xs text-muted-foreground bg-surface-muted px-3 py-1.5 rounded-control">
-              <span>추적 링크:</span>
-              <code className="text-primary font-mono text-[11px]">
-                zemix/go/{project.id}
-              </code>
-            </div>
-
-            {/* Power Tools Row */}
-            <div className="w-full flex flex-wrap items-center gap-2 pt-2 border-t border-border/40">
+          {/* Clean Secondary Tools Bar */}
+          <div className="mt-5 pt-4 border-t border-border/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
               {project.websiteUrl && (
                 <button
                   type="button"
                   onClick={() => setShowSandboxModal(true)}
-                  className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-surface px-2.5 py-1.5 text-xs font-medium text-muted hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer"
                 >
                   <Smartphone className="h-3.5 w-3.5 text-purple-500" />
                   <span>인앱 미리보기</span>
@@ -801,7 +748,7 @@ export default function ProjectDetailClient({
               <button
                 type="button"
                 onClick={() => setShowBadgeModal(true)}
-                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-surface px-2.5 py-1.5 text-xs font-medium text-muted hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer"
               >
                 <Award className="h-3.5 w-3.5 text-amber-500" />
                 <span>뱃지 발급</span>
@@ -810,67 +757,40 @@ export default function ProjectDetailClient({
               <button
                 type="button"
                 onClick={() => setShowViralModal(true)}
-                className="flex items-center gap-1.5 rounded-[12px] border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-white transition-all cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-surface px-2.5 py-1.5 text-xs font-medium text-muted hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer"
               >
-                <Share2 className="h-3.5 w-3.5" />
-                <span>🚀 바이럴 툴킷</span>
+                <Share2 className="h-3.5 w-3.5 text-primary" />
+                <span>바이럴 툴킷</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowAiDevModal(true)}
-                className="flex items-center gap-1.5 rounded-[12px] border border-purple-500/30 bg-purple-500/10 px-3 py-1.5 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-600 hover:text-white transition-all cursor-pointer shadow-xs"
-              >
-                <Bot className="h-3.5 w-3.5" />
-                <span>🤖 AI 개발 스위트</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowCardNewsModal(true)}
-                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
-              >
-                <ImageIcon className="h-3.5 w-3.5 text-rose-500" />
-                <span>SNS 카드뉴스</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowAiLaunchModal(true)}
-                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-surface px-2.5 py-1.5 text-xs font-medium text-muted hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer"
               >
                 <Bot className="h-3.5 w-3.5 text-sky-500" />
-                <span>AI 런칭글</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowSeoModal(true)}
-                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
-              >
-                <Zap className="h-3.5 w-3.5 text-emerald-500" />
-                <span>SEO 진단</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsEnglish(!isEnglish)}
-                className="flex items-center gap-1.5 rounded-[12px] border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
-              >
-                <Languages className="h-3.5 w-3.5 text-primary" />
-                <span>{isEnglish ? "한국어 원문" : "🌐 EN 번역"}</span>
+                <span>AI 도구</span>
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setIsEnglish(!isEnglish)}
+              className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-surface px-2.5 py-1.5 text-xs font-medium text-muted hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer ml-auto"
+            >
+              <Languages className="h-3.5 w-3.5 text-primary" />
+              <span>{isEnglish ? "한국어 원문" : "🌐 English"}</span>
+            </button>
           </div>
         </div>
       </div>
 
       {/* Main Grid: Tabs Content & Sidebar */}
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_280px]">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_300px]">
         {/* Left Column: Tabs & Content */}
         <div>
           {/* Tabs Navigation */}
-          <div className="mb-6 flex gap-1 overflow-x-auto border-b border-border scrollbar-none">
+          <div className="mb-6 flex gap-1.5 overflow-x-auto border-b border-border pb-2 scrollbar-none">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.key;
               return (
@@ -878,10 +798,10 @@ export default function ProjectDetailClient({
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key as TabType)}
-                  className={`shrink-0 border-b-2 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
+                  className={`shrink-0 rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                     isActive
-                      ? "border-primary text-primary font-semibold"
-                      : "border-transparent text-muted hover:text-foreground"
+                      ? "bg-primary text-white shadow-xs"
+                      : "text-muted hover:text-foreground hover:bg-surface-muted"
                   }`}
                 >
                   {tab.label}
@@ -990,14 +910,13 @@ export default function ProjectDetailClient({
                   ))}
                 </div>
               </div>
+
+              {/* Maker Story Section */}
+              <div className="mt-8 pt-6 border-t border-border">
+                <MakerStoryTab project={project} />
+              </div>
             </div>
           )}
-
-          {/* TAB: MAKER STORY (Feature 49) */}
-          {activeTab === "story" && <MakerStoryTab project={project} />}
-
-          {/* TAB: QA & TESTING TOOLS (Features 28, 30, 44) */}
-          {activeTab === "qa_tools" && <TestingAndQaTab project={project} />}
 
           {/* TAB 2: FEEDBACK */}
           {activeTab === "feedback" && (
@@ -1121,19 +1040,6 @@ export default function ProjectDetailClient({
             </div>
           )}
 
-          {/* TAB: CHANGELOG */}
-          {activeTab === "changelog" && (
-            <div className="animate-fade-in">
-              <ChangelogTab isOwner={isOwner} />
-            </div>
-          )}
-
-          {/* TAB: POLLS & METRICS */}
-          {activeTab === "polls" && (
-            <div className="animate-fade-in">
-              <PollAndMetricsTab project={project} />
-            </div>
-          )}
 
           {/* TAB 3: COMMENTS */}
           {activeTab === "comments" && (
@@ -1505,76 +1411,7 @@ export default function ProjectDetailClient({
             );
           })()}
 
-          {/* TAB 6: COLLABORATORS */}
-          {activeTab === "collaborators" && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-semibold text-foreground">팀원 및 협업자</h3>
-                  <p className="text-xs text-muted">
-                    이 프로젝트를 함께 만들고 있는 빌더 목록입니다.
-                  </p>
-                </div>
-                {project.lookingForTeam && (
-                  <span className="rounded-full bg-primary-soft text-primary px-3 py-1 text-xs font-semibold">
-                    팀원 모집 중
-                  </span>
-                )}
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {(project.collaborators || [
-                  {
-                    id: "collab-main",
-                    name: project.author?.name || "Maker",
-                    role: "Project Owner",
-                    avatar: project.author?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=maker",
-                    handle: project.author?.handle || "maker",
-                    joinedAt: "2026-10-01",
-                  },
-                ]).map((c) => {
-                  const targetBuilderId = c.id === "collab-main"
-                    ? (project.author?.id || project.author?.handle || "")
-                    : (c.id || c.handle || "");
-                  return (
-                    <Link
-                      key={c.id}
-                      href={`/builders/${targetBuilderId}`}
-                      className="flex items-center gap-3 rounded-card border border-border bg-surface p-4 shadow-sm hover:border-primary/40 transition-colors group cursor-pointer"
-                    >
-                      <img
-                        src={c.avatar}
-                        alt={c.name}
-                        className="h-10 w-10 rounded-full border border-border object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <div>
-                        <h4 className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">{c.name}</h4>
-                        <p className="text-[11px] text-muted">@{c.handle}</p>
-                        <span className="inline-block rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-medium text-muted mt-1">
-                          {c.role}
-                        </span>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-
-              {project.lookingForTeam && (
-                <div className="rounded-card border border-primary/30 bg-primary-soft/40 p-5 text-center">
-                  <h4 className="text-sm font-semibold text-primary">함께 프로젝트를 키워갈 팀원을 찾고 있습니다</h4>
-                  <p className="text-xs text-muted mt-1">
-                    {project.lookingForTeamRoles?.join(", ") || "프론트엔드, 디자이너, 마케터"}
-                  </p>
-                  <button
-                    onClick={() => alert("메이커에게 팀 합류 신청 메시지를 전달했습니다!")}
-                    className="mt-3 rounded-control bg-primary px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover cursor-pointer"
-                  >
-                    팀 합류 지원하기
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Right Sidebar: Maker Info & Meta */}
@@ -1688,98 +1525,48 @@ export default function ProjectDetailClient({
             )}
           </div>
 
-          {/* Feature 29: Real-time Uptime & Status Ping */}
-          <div className="rounded-card border border-emerald-500/20 bg-emerald-500/5 p-4 text-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
-                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>서버 정상 가동 중 (Uptime)</span>
-              </span>
-              <span className="font-mono text-[10px] text-muted">99.9%</span>
-            </div>
-            <div className="flex justify-between text-[11px] text-muted pt-1">
-              <span>평균 응답 속도</span>
-              <span className="font-mono font-semibold text-foreground">118ms</span>
-            </div>
-            <div className="flex justify-between text-[11px] text-muted">
-              <span>마지막 헬스체크</span>
-              <span className="font-mono text-foreground">방금 전</span>
-            </div>
-          </div>
-
-          {/* Feature 35: VC / Angel Investor Interest */}
-          <div className="rounded-card border border-border bg-surface p-4 text-xs space-y-2.5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-foreground flex items-center gap-1.5">
-                <span>💼 초기 투자 검토 등록</span>
-              </span>
-              <span className="rounded-full bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5">
-                {investorInterests}명 관심
-              </span>
-            </div>
-            <p className="text-[11px] text-muted leading-relaxed">
-              벤처캐피털(VC), 액셀러레이터 또는 엔젤 투자자이신가요? 프로젝트에 관심 등록을 남기시면 메이커에게 IR 미팅 요청이 전달됩니다.
-            </p>
-            <button
-              onClick={() => {
-                if (!hasExpressedInterest) {
-                  setInvestorInterests((v) => v + 1);
-                  setHasExpressedInterest(true);
-                  alert("투자 검토 관심이 메이커에게 안전하게 전달되었습니다!");
-                }
-              }}
-              className={`w-full rounded-control py-2 text-xs font-semibold transition-all cursor-pointer ${
-                hasExpressedInterest
-                  ? "bg-emerald-500 text-white"
-                  : "bg-surface-muted hover:bg-surface border border-border text-foreground"
-              }`}
-            >
-              {hasExpressedInterest ? "✓ 관심 등록 완료" : "+ 투자 검토 관심 등록"}
-            </button>
-          </div>
-
-          {/* Feature 10: Earlybird Lifetime Deal (LTD) */}
-          <div className="rounded-card border border-amber-500/30 bg-amber-500/5 p-4 text-xs space-y-2.5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                <span>🎟️ 얼리버드 평생 이용권 (LTD)</span>
-              </span>
-              <span className="rounded-md bg-amber-500/10 text-amber-500 font-mono text-[10px] font-bold px-1.5 py-0.2">
-                7 / 50 남음
-              </span>
-            </div>
-            <p className="text-[11px] text-muted leading-relaxed">
-              초기 후원자를 위한 특별 혜택! 월 구독료 없이 1회 결제로 평생 VIP 플랜을 소장하세요.
-            </p>
-            <div className="flex items-center justify-between pt-1">
-              <div>
-                <span className="text-[10px] text-muted line-through block">정가 ₩149,000</span>
-                <span className="text-sm font-black text-foreground">₩49,000</span>
+          {/* Collaboration & Recruitment Card */}
+          {(project.lookingForTeam || project.lookingForTesters) && (
+            <div className="rounded-card border border-primary/30 bg-primary/5 p-4 text-xs space-y-3 shadow-xs">
+              <div className="flex items-center gap-1.5 font-bold text-primary">
+                <Users className="h-4 w-4" />
+                <span>팀원 & 테스터 모집 중</span>
               </div>
-              <button
-                onClick={() => alert("얼리버드 LTD 결제 링크로 이동합니다.")}
-                className="rounded-control bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3.5 py-1.5 text-xs transition-colors cursor-pointer shadow-xs"
-              >
-                얼리버드 구매
-              </button>
+              <p className="text-[11px] text-muted leading-relaxed">
+                현재 프로젝트를 함께 발전시킬 동료 및 베타 테스터를 찾고 있습니다.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {project.lookingFor && project.lookingFor.map((role) => (
+                  <span
+                    key={role}
+                    className="inline-flex items-center rounded-md bg-surface px-2 py-0.5 text-[11px] font-semibold text-primary border border-primary/20"
+                  >
+                    {HELP_LABELS[role]?.label || role}
+                  </span>
+                ))}
+              </div>
+              {project.teamChat?.url ? (
+                <a
+                  href={project.teamChat.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full rounded-control bg-primary hover:bg-primary-hover text-white py-2 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  <span>{project.teamChat.platform || "팀 소통 채널"} 참여하기</span>
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCoffeeChatModal(true)}
+                  className="w-full rounded-control bg-primary hover:bg-primary-hover text-white py-2 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                >
+                  <Coffee className="h-3.5 w-3.5" />
+                  <span>메이커에게 참여 문의하기</span>
+                </button>
+              )}
             </div>
-          </div>
-
-          {/* Feature 36: Co-founder Equity Match */}
-          <div className="rounded-card border border-purple-500/30 bg-purple-500/5 p-4 text-xs space-y-2">
-            <div className="flex items-center gap-1.5 font-bold text-purple-600 dark:text-purple-400">
-              <span>🤝 지분 셰어 공동창업자 모집</span>
-            </div>
-            <p className="text-[11px] text-muted leading-relaxed">
-              MVP 개발 완료 후 본격적인 사업화와 마케팅/영업을 함께할 Co-founder(지분 협의)를 찾고 있습니다.
-            </p>
-            <button
-              onClick={() => alert("메이커에게 공동창업자 지원 메시지를 보냈습니다!")}
-              className="w-full rounded-control border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500 hover:text-white text-purple-600 dark:text-purple-400 py-1.5 text-xs font-semibold transition-all cursor-pointer"
-            >
-              공동창업자 지원하기
-            </button>
-          </div>
+          )}
         </div>
       </div>
 

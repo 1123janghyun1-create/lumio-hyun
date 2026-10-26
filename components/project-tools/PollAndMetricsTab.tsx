@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { BarChart3, CheckCircle2, Gift, Copy, Check, Sparkles, TrendingUp, Users, DollarSign, Bot } from "lucide-react";
+import { BarChart3, CheckCircle2, Sparkles, TrendingUp, Users, DollarSign, Bot } from "lucide-react";
 import { Project } from "@/lib/types";
 
 interface PollAndMetricsTabProps {
@@ -16,7 +16,6 @@ interface PollOption {
 export default function PollAndMetricsTab({ project }: PollAndMetricsTabProps) {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
-  const [couponCopied, setCouponCopied] = useState(false);
 
   const [pollOptions, setPollOptions] = useState<PollOption[]>([
     { text: "🌙 다크모드 및 모바일 UI 최적화", votes: 42 },
@@ -36,52 +35,9 @@ export default function PollAndMetricsTab({ project }: PollAndMetricsTabProps) {
     );
   };
 
-  const copyCoupon = () => {
-    navigator.clipboard.writeText("ZEMIX100");
-    setCouponCopied(true);
-    setTimeout(() => setCouponCopied(false), 2000);
-  };
-
   return (
     <div className="space-y-8">
-      {/* 1. Early Bird Secret Coupon */}
-      <div className="rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary-soft/80 via-surface to-purple-500/10 p-5 md:p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shrink-0 shadow-md">
-              <Gift className="h-5 w-5" />
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-primary bg-primary-soft px-2 py-0.5 rounded">
-                  EARLY BIRD
-                </span>
-                <h4 className="text-sm md:text-base font-bold text-foreground">
-                  zemix 유저 전용 시크릿 혜택
-                </h4>
-              </div>
-              <p className="text-xs text-muted mt-1">
-                프로젝트 웹사이트 방문 시 프로모션 코드를 입력하면 <b>유료 플랜 1개월 무료</b>를 제공합니다.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <code className="rounded-xl border border-primary/40 bg-surface px-3 py-2 font-mono text-xs font-bold text-primary">
-              ZEMIX100
-            </code>
-            <button
-              onClick={copyCoupon}
-              className="flex items-center gap-1 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover transition-all cursor-pointer shadow-sm"
-            >
-              {couponCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              <span>{couponCopied ? "복사됨!" : "코드 복사"}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Interactive Poll Widget */}
+      {/* Interactive Poll Widget */}
       <div className="rounded-2xl border border-border bg-surface p-5 md:p-6 shadow-sm">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
